@@ -35,7 +35,6 @@ import requests
 import shutil
 import tempfile
 import time
-import unicodedata
 import zipfile
 from datetime import datetime
 from dataclasses import dataclass
@@ -51,7 +50,6 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition)
-
 
 class ResponseCodes(object):
     """This class manages response codes from the DDR API """
@@ -338,7 +336,7 @@ class DdrInfo(object):
         # Verify the structure/content of the JSON document
         try:
             for item in self.json_theme:
-                theme_uuid = item['theme_uuid']
+                theme_uuid = item['theme_uuid']  # Just check that the key 'theme_uuid" exist
                 title = item['title']
                 # Replace the coma "," by a semi column ";" as QGIS processing enum does not like coma
                 title['en'] = title['en'].replace(',', ';')
@@ -367,6 +365,7 @@ class DdrInfo(object):
 
             item_uuid = ""
         else:
+            item_uuid = None
             for item in self.json_theme:
                 item_uuid = item['theme_uuid']
                 item_title = item['title']
@@ -374,8 +373,6 @@ class DdrInfo(object):
                 item_title_fr = item_title['fr']
                 if title in (item_title_en, item_title_fr):
                     break
-                else:
-                    item_uuid = None
 
             if item_uuid is None:
                 # Nothing was found internal error
@@ -669,7 +666,6 @@ class Utils:
 
         def _set_layer():
 
-            qgs_project = QgsProject.instance()
             # Use the newly created GPKG file to set the data source of the QGIS project file
             provider_options = QgsDataProvider.ProviderOptions()
             provider_options.transformContext = qgs_project.transformContext()
@@ -802,7 +798,7 @@ class UtilsGui():
 
     @staticmethod
     def add_department(self):
-        """Add Select depertment menu"""
+        """Add Select department menu"""
 
         self.addParameter(QgsProcessingParameterEnum(
             name='DEPARTMENT',
@@ -816,12 +812,13 @@ class UtilsGui():
     def add_uuid(self):
         """Add Select UUID menu"""
 
-        import uuid
-        idd = ""
-#        idd = uuid.uuid4()
+
+        str_uuid = ""
+#        import uuid
+#        str_uuid = uuid.uuid4()
         self.addParameter(QgsProcessingParameterString(
             name="METADATA_UUID",
-            defaultValue=str(idd),
+            defaultValue=str(str_uuid),
             description=self.tr('Enter the metadata UUID')))
 
     @staticmethod
@@ -1342,7 +1339,7 @@ class DdrLogin(QgsProcessingAlgorithm):
             raise UserMessageException("Unable to extract username/password from QGIS "
                                        "authentication system")
 
-        return (username, password)
+        return username, password
 
     def processAlgorithm(self, parameters, context, feedback):
         """Main method that extract parameters and call Simplify algorithm.
