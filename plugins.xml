@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<plugins>
+    <pyqgis_plugin name="CDTK" version="2.0">
+        <description>CDTK</description>
+        <homepage>https://github.com/federal-geospatial-platform/pub_ddr_processing</homepage>
+        <qgis_minimum_version>3.18</qgis_minimum_version>
+        <file_name>pub_ddr_processing.zip</file_name>
+        <author_name>Daniel Pilon</author_name>
+        <download_url>https://github.com/federal-geospatial-platform/pub_ddr_processing/blob/main/pub_ddr_processing.zip</download_url>
+    </pyqgis_plugin>
+</plugins>
