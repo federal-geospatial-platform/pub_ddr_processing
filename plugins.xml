@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <plugins>
-    <pyqgis_plugin name="CDTK" version="2.0">
+    <pyqgis_plugin name="CDTK" version="1.0.0">
         <description>CDTK</description>
         <homepage>https://github.com/federal-geospatial-platform/pub_ddr_processing</homepage>
         <qgis_minimum_version>3.18</qgis_minimum_version>

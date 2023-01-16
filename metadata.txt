@@ -4,7 +4,7 @@
 
 [general]
 name=DDR Publication (processing)
-qgisMinimumVersion=3.24
+qgisMinimumVersion=3.22
 description=This plugin contains different tools for publication/unpublication in the DDR
 version=1.0.0
 author=Natural Resources Canada
