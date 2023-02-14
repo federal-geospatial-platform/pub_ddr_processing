@@ -6,5 +6,5 @@
 .idea/pub_ddr_processing.iml
 .idea/vcs.xml
 .idea/workspace.xml
-__pycache__/*.pyc
+__pycache__/*.cpython-39.pyc
 *.pyc

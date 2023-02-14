@@ -8,8 +8,8 @@
 # /***************************************************************************
 # ddr_algorithm.py
 # ----------
-# Date                 : April 2021
-# copyright            : (C) 2020 by Natural Resources Canada
+# Date                 : January 2021
+# copyright            : (C) 2023 by Natural Resources Canada
 # email                : daniel.pilon@canada.ca
 #
 #  ***************************************************************************/
@@ -660,6 +660,21 @@ class Utils:
                     Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not vector ==> Not transferred")
             else:
                 Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not spatial ==> transferred")
+
+#    def _save_layer_style_in_database(self, layer):
+#        """
+#        Saves the layer style to DDR Postgres DB
+#        """
+#
+#        # Get the style name
+#        style_name = self._format_style_name(layer.name())
+#
+#        # Fetch the styles
+#        [count, style_ids, style_names, style_descs, error] = layer.listStylesInDatabase()
+#
+#        # Save it
+#        layer.saveStyleToDatabase(style_name, "", True, "")
+#        print(f">>Style '{style_name}' has been saved in the database")
 
     @staticmethod
     def set_layer_data_source(ctl_file, feedback):
