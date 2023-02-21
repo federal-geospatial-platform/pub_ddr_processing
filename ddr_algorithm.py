@@ -646,7 +646,7 @@ class Utils:
         qgis_file_en = Path(ctl_file.qgis_project_file_en).name
         ctl_file.out_qgs_project_file_en = os.path.join(ctl_file.control_file_dir, qgis_file_en)
         qgs_project.write(ctl_file.out_qgs_project_file_en)
-        Utils.push_info(feedback, "INFO: QGIS project file save as: ",ctl_file.out_qgs_project_file_en)
+        Utils.push_info(feedback, "INFO: QGIS project file save as: ", ctl_file.out_qgs_project_file_en)
 
         qgs_project = QgsProject.instance()
         for src_layer in qgs_project.mapLayers().values():
@@ -727,7 +727,6 @@ class Utils:
             qgs_project.read(ctl_file.out_qgs_project_file_fr)
             _set_layer()
             qgs_project.write(ctl_file.out_qgs_project_file_fr)
-
 
     @staticmethod
     def create_zip_file(ctl_file, feedback):
@@ -849,7 +848,6 @@ class UtilsGui():
     def add_uuid(self):
         """Add Select UUID menu"""
 
-
         str_uuid = ""
 #        import uuid
 #        str_uuid = uuid.uuid4()
@@ -863,15 +861,13 @@ class UtilsGui():
         """Add Select download info menu"""
 
         lst_download_info_id = ["DDR_DOWNLOAD1"]
-        parameter = QgsProcessingParameterEnum(
+        self.addParameter(QgsProcessingParameterEnum(
             name='DOWNLOAD_INFO_ID',
             description=self.tr("Select the download info ID"),
             options=lst_download_info_id,
             defaultValue=lst_download_info_id[0],
             usesStaticStrings=True,
-            allowMultiple=False)
-        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(parameter)
+            allowMultiple=False))
 
     @staticmethod
     def add_email(self):
@@ -889,15 +885,13 @@ class UtilsGui():
         """Add Select server menu"""
 
         lst_qgs_server_id = ['DDR_QGS1']
-        parameter = QgsProcessingParameterEnum(
+        self.addParameter(QgsProcessingParameterEnum(
             name='QGS_SERVER_ID',
             description=self.tr('Select the QGIS server'),
             options=lst_qgs_server_id,
             defaultValue=lst_qgs_server_id[0],
             usesStaticStrings=True,
-            allowMultiple=False)
-        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(parameter)
+            allowMultiple=False))
 
     @staticmethod
     def add_csz_themes(self):
@@ -1130,7 +1124,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
 
         UtilsGui.add_qgis_file(self)
         UtilsGui.add_department(self)
-        UtilsGui.add_uuid(self)
+#        UtilsGui.add_uuid(self)
         UtilsGui.add_csz_themes(self)
         UtilsGui.add_email(self)
         UtilsGui.add_download_info(self)
@@ -1360,8 +1354,8 @@ class DdrUnpublish(QgsProcessingAlgorithm):
 
         UtilsGui.add_qgis_file(self)
         UtilsGui.add_department(self)
-        UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
+#        UtilsGui.add_uuid(self)
+#        UtilsGui.add_csz_themes(self)
         UtilsGui.add_email(self)
         UtilsGui.add_download_info(self)
         UtilsGui.add_qgs_server_id(self)

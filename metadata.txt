@@ -10,7 +10,7 @@ version=1.0.0
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
-about=This plugin contains the following tool for line/polygon simplification and generalization: <p>- Chordal Axis</p> <p>- Reduce Bend</p> <p>- Simplify (D Peuker+)</p>
+about=This plugin contains the following tool for publication in the DDR.
 
 tracker=https://github.com/federal-geospatial-platform/pub_ddr_processing/issues
 repository=https://github.com/federal-geospatial-platform/pub_ddr_processing
