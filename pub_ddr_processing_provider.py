@@ -27,7 +27,7 @@ __copyright__ = '(C) 2021 by Daniel Pilon'
 __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
-from .ddr_algorithm import DdrPublish, DdrValidate, DdrUnpublish, DdrLogin
+from .ddr_algorithm import DdrPublish, DdrValidate, DdrUpdate, DdrUnpublish, DdrLogin
 import os
 
 import inspect
@@ -55,6 +55,7 @@ class PubDdrProvider(QgsProcessingProvider):
         """
         self.addAlgorithm(DdrLogin())
         self.addAlgorithm(DdrPublish())
+        self.addAlgorithm(DdrUpdate())
         self.addAlgorithm(DdrValidate())
         self.addAlgorithm(DdrUnpublish())
 
