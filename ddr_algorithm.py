@@ -182,6 +182,48 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, status, description)
 
     @staticmethod
+    def read_downloads(feedback, response):
+        """This method manages the response codes for the DDR Publisher API Get /ddr_downloads
+           This method extract the downloads associated with user login"""
+
+        status = response.status_code
+
+        if status == 200:
+            Utils.push_info(feedback, f"INFO: Status code: {status}")
+            msg = "The list of DDR Registry Downloads."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            json_response = response.json()
+            DDR_INFO.add_downloads(json_response)
+        elif status == 401:
+            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
+        elif status == 403:
+            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
+        else:
+            description = http.client.responses[status]
+            ResponseCodes._push_response(feedback, response, status, description)
+
+    @staticmethod
+    def read_servers(feedback, response):
+        """This method manages the response codes for the DDR Publisher API Get /ddr_servers
+           This method extract the downloads associated with user login"""
+
+        status = response.status_code
+
+        if status == 200:
+            Utils.push_info(feedback, f"INFO: Status code: {status}")
+            msg = "The list of DDR Registry Servers."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            json_response = response.json()
+            DDR_INFO.add_servers(json_response)
+        elif status == 401:
+            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
+        elif status == 403:
+            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
+        else:
+            description = http.client.responses[status]
+            ResponseCodes._push_response(feedback, response, status, description)
+
+    @staticmethod
     def publish_project_file(feedback, response):
         """This method manages the response codes for the DDR Publisher API PUT /services
         """
@@ -275,6 +317,8 @@ class DdrInfo(object):
         self.json_theme = []
         self.json_department = []
         self.json_email = []
+        self.json_downloads = None
+        self.json_servers = None
 
     def init_project_file(self):
 
@@ -399,6 +443,60 @@ class DdrInfo(object):
 
         return item_uuid
 
+    def add_downloads(self, json_downloads):
+        """Add the the downloads from the JSON response structure
+           Verify the validity of the JSON structure"""
+
+        self.json_downloads = json_downloads
+        # Verify the structure/content of the JSON document
+        try:
+            for item in self.json_downloads:
+                id_value = item['id']
+        except KeyError:
+            # Bad structure raise an exception and crash
+            raise UserMessageException("Invalid structure of the JSON Downloads response from the DDR request")
+
+    def get_downloads_lst(self):
+        """Extract the departments in the form of a list"""
+
+        downloads_lst = []
+        if self.json_downloads != None:
+            for item in self.json_downloads:
+                id_value = item['id']
+                downloads_lst.append(id_value)
+        else:
+            # Manage the case where the Login is not done and the JSON structure not filed
+            downloads_lst = ["<empty>"]
+
+        return downloads_lst
+
+    def add_servers(self, json_servers):
+        """Add the the servers from the JSON response structure
+           Verify the validity of the JSON structure"""
+
+        self.json_servers = json_servers
+        # Verify the structure/content of the JSON document
+        try:
+            for item in self.json_servers:
+                id_value = item['id']
+        except KeyError:
+            # Bad structure raise an exception and crash
+            raise UserMessageException("Invalid structure of the JSON Servers response from the DDR request")
+
+    def get_servers_lst(self):
+        """Extract the departments in the form of a list"""
+
+        servers_lst = []
+        if self.json_servers != None:
+            for item in self.json_servers:
+                id_value = item['id']
+                servers_lst.append(id_value)
+        else:
+            # Manage the case where the Login is not done and the JSON structure not filed
+            servers_lst = ["<empty>"]
+
+        return servers_lst
+
 
 DDR_INFO = DdrInfo()
 
@@ -427,6 +525,7 @@ class ControlFile:
     qgis_project_file_fr: str = None     # Name of the input French QGIS project file
     out_qgs_project_file_en: str = None  # Name out the output English project file
     out_qgs_project_file_fr: str = None  # Name out the output English project file
+    validation_type: str = None          # Name of the type of validation
 
 
 class UserMessageException(Exception):
@@ -542,7 +641,7 @@ class Utils:
 
     @staticmethod
     def read_csz_themes(ctl_file, feedback):
-        """Read the CSZ themes from end service end point"""
+        """Read the CSZ themes from the service end point"""
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/czs_themes"
         headers = {'accept': 'application/json',
@@ -557,7 +656,7 @@ class Utils:
 
     @staticmethod
     def read_ddr_departments(ctl_file, feedback):
-        """Read the DDR departments from end service end point"""
+        """Read the DDR departments from the service end point"""
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_departments"
         headers = {'accept': 'application/json',
@@ -572,7 +671,7 @@ class Utils:
 
     @staticmethod
     def read_user_email(ctl_file, feedback):
-        """Read the user email from the end service end point"""
+        """Read the User Email from the service end point"""
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_my_email"
         headers = {'accept': 'application/json',
@@ -581,6 +680,36 @@ class Utils:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_user_email(feedback, response)
+
+        except requests.exceptions.RequestException as e:
+            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+
+    @staticmethod
+    def read_downloads(ctl_file, feedback):
+        """Read the Downloads from the service end point"""
+
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_downloads"
+        headers = {'accept': 'application/json',
+                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+        try:
+            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+            response = requests.get(url, verify=False, headers=headers)
+            ResponseCodes.read_downloads(feedback, response)
+
+        except requests.exceptions.RequestException as e:
+            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+
+    @staticmethod
+    def read_servers(ctl_file, feedback):
+        """Read the Servers from the service end point"""
+
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_servers"
+        headers = {'accept': 'application/json',
+                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+        try:
+            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+            response = requests.get(url, verify=False, headers=headers)
+            ResponseCodes.read_servers(feedback, response)
 
         except requests.exceptions.RequestException as e:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
@@ -634,7 +763,10 @@ class Utils:
         qgs_project.read(ctl_file.qgis_project_file_fr)
         qgis_file_fr = Path(ctl_file.qgis_project_file_fr).name
         ctl_file.out_qgs_project_file_fr = os.path.join(ctl_file.control_file_dir, qgis_file_fr)
-        qgs_project.write(ctl_file.out_qgs_project_file_fr)
+        qgs_project.write(ctl_file.out_qgs_project_file_fr)  # Write the project in the new directory
+        # Force the project properties "Save Paths" to be Relative
+        qgs_project.writeEntryBool("Paths", "Absolute", False)
+        qgs_project.write(ctl_file.out_qgs_project_file_fr)  # Rewrite the project with the new relative path
         Utils.push_info(feedback, "INFO: QGIS project file save as: ", ctl_file.out_qgs_project_file_fr)
 
         qgs_project = QgsProject.instance()
@@ -645,7 +777,10 @@ class Utils:
         qgs_project.read(ctl_file.qgis_project_file_en)
         qgis_file_en = Path(ctl_file.qgis_project_file_en).name
         ctl_file.out_qgs_project_file_en = os.path.join(ctl_file.control_file_dir, qgis_file_en)
-        qgs_project.write(ctl_file.out_qgs_project_file_en)
+        qgs_project.write(ctl_file.out_qgs_project_file_en)  # Write the project in the new directory
+        # Force the project properties "Save Paths" to be Relative
+        qgs_project.writeEntryBool("Paths", "Absolute", False)
+        qgs_project.write(ctl_file.out_qgs_project_file_en)  # Rewrite the project with the new relative path
         Utils.push_info(feedback, "INFO: QGIS project file save as: ", ctl_file.out_qgs_project_file_en)
 
         qgs_project = QgsProject.instance()
@@ -815,6 +950,19 @@ class UtilsGui():
             QgsProcessingParameterAuthConfig('AUTHENTICATION', 'Authentication Configuration', defaultValue=None))
 
     @staticmethod
+    def add_validation_type(self):
+        """Add Select the the type of validation"""
+
+        lst_validation_type = ["Publish", "Republish", "Unpublish"]
+        self.addParameter(QgsProcessingParameterEnum(
+            name='VALIDATION_TYPE',
+            description=self.tr("Select the validation type"),
+            options=lst_validation_type,
+            defaultValue=lst_validation_type[0],
+            usesStaticStrings=True,
+            allowMultiple=False))
+
+    @staticmethod
     def add_qgis_file(self):
         """Add Select EN and FR project file menu"""
 
@@ -860,7 +1008,7 @@ class UtilsGui():
     def add_download_info(self):
         """Add Select download info menu"""
 
-        lst_download_info_id = ["DDR_DOWNLOAD1"]
+        lst_download_info_id = DDR_INFO.get_downloads_lst()
         self.addParameter(QgsProcessingParameterEnum(
             name='DOWNLOAD_INFO_ID',
             description=self.tr("Select the download info ID"),
@@ -884,7 +1032,7 @@ class UtilsGui():
     def add_qgs_server_id(self):
         """Add Select server menu"""
 
-        lst_qgs_server_id = ['DDR_QGS1']
+        lst_qgs_server_id = DDR_INFO.get_servers_lst()
         self.addParameter(QgsProcessingParameterEnum(
             name='QGS_SERVER_ID',
             description=self.tr('Select the QGIS server'),
@@ -932,6 +1080,7 @@ class UtilsGui():
         ctl_file.csz_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
         ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
         ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
+        ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
 
 
 class DdrPublish(QgsProcessingAlgorithm):
@@ -1238,6 +1387,7 @@ class DdrValidate(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
+        UtilsGui.add_validation_type(self)
         UtilsGui.add_qgis_file(self)
         UtilsGui.add_department(self)
         UtilsGui.add_uuid(self)
@@ -1262,8 +1412,14 @@ class DdrValidate(QgsProcessingAlgorithm):
         url = 'https://qgis.ddr-stage.services.geo.ca/api/validate'
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
-        files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
+                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)
+                   }
+        data = {
+            'operation': ctl_file.validation_type.lower()
+        }
+        files = {
+            'zip_file': open(ctl_file.zip_file_name, 'rb')
+        }
 
         Utils.push_info(feedback, "INFO: Validating project")
         Utils.push_info(feedback, "INFO: HTTP Headers: ", headers)
@@ -1271,7 +1427,7 @@ class DdrValidate(QgsProcessingAlgorithm):
 
         try:
             Utils.push_info(feedback, "INFO: HTTP Post Request: ", url)
-            response = requests.post(url, files=files, verify=False, headers=headers)
+            response = requests.post(url, files=files, verify=False, headers=headers, data=data)
             ResponseCodes.validate_project_file(feedback, response)
 
         except requests.exceptions.RequestException as e:
@@ -1504,11 +1660,11 @@ class DdrLogin(QgsProcessingAlgorithm):
             Utils.create_access_token(username, password, ctl_file, feedback)
 
             Utils.read_csz_themes(ctl_file, feedback)
-#            import web_pdb;  web_pdb.set_trace()
             Utils.read_ddr_departments(ctl_file, feedback)
-
-#            import web_pdb; web_pdb.set_trace()
             Utils.read_user_email(ctl_file, feedback)
+#            import web_pdb; web_pdb.set_trace()
+            Utils.read_downloads(ctl_file, feedback)
+            Utils.read_servers(ctl_file, feedback)
 
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
