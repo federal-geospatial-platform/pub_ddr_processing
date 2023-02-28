@@ -741,7 +741,31 @@ class Utils:
 
     @staticmethod
     def copy_qgis_project_file(ctl_file, feedback):
-        """Creates a copy of the QGIS project file"""
+        """Creates a copy of the French and English QGIS project files"""
+
+        def read_write_qgs(feedback, qgs_file_name, languange):
+            """Read and write the project file in a the temporary folder
+               Force project property to be relative path
+               Extract the name of the layers
+            """
+
+            # Read the QGIS project
+            qgs_project = QgsProject.instance()
+            qgs_project.read(qgs_file_name)
+            qgis_file = Path(qgs_file_name).name
+            out_qgs_project_file = os.path.join(ctl_file.control_file_dir, qgis_file)
+            qgs_project.write(out_qgs_project_file)  # Write the project in the new directory
+            # Force the project properties "Save Paths" to be Relative
+            qgs_project.writeEntryBool("Paths", "Absolute", False)
+            qgs_project.write(out_qgs_project_file)  # Rewrite the project properties with the new relative path
+            Utils.push_info(feedback, "INFO: QGIS project file save as: ", out_qgs_project_file)
+
+            qgs_project = QgsProject.instance()
+            for src_layer in qgs_project.mapLayers().values():
+                # Adding the name of the layers with the language
+                DDR_INFO.add_layer(src_layer, languange)
+
+            return out_qgs_project_file
 
         qgs_project = QgsProject.instance()
 
@@ -759,6 +783,15 @@ class Utils:
         # Clear or Close  the actual QGS project
         qgs_project.clear()
 
+        # Processing the French QGIS project file
+        ctl_file.out_qgs_project_file_fr = read_write_qgs(feedback, ctl_file.qgis_project_file_fr, "FR")
+
+        # Processing the English QGIS project file
+        ctl_file.out_qgs_project_file_en = read_write_qgs(feedback, ctl_file.qgis_project_file_en, "EN")
+
+
+
+        """
         # Read the French QGIS project
         qgs_project.read(ctl_file.qgis_project_file_fr)
         qgis_file_fr = Path(ctl_file.qgis_project_file_fr).name
@@ -786,6 +819,7 @@ class Utils:
         qgs_project = QgsProject.instance()
         for src_layer in qgs_project.mapLayers().values():
             DDR_INFO.add_layer(src_layer, "EN")
+        """
 
     @staticmethod
     def copy_layer_gpkg(ctl_file, feedback):
@@ -1629,7 +1663,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         # Get the application's authentication manager
         auth_mgr = QgsApplication.authManager()
 
-        # Create an empty authmethodconfig object
+        # Create an empty QgsAuthMethodConfig object
         auth_cfg = QgsAuthMethodConfig()
 
         # Load config from manager to the new config instance and decrypt sensitive data
