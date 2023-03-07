@@ -5,12 +5,12 @@
 [general]
 name=DDR Publication (processing)
 qgisMinimumVersion=3.22
-description=This plugin contains different tools for publication/unpublication in the DDR
+description=This plugin contains allows to publish, unpublish, edit and validate data collection in the FGP DDR.
 version=1.0.0
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
-about=This plugin contains the following tool for publication in the DDR.
+about=This plugin contains a list of tools for data publication in the DDR.
 
 tracker=https://github.com/federal-geospatial-platform/pub_ddr_processing/issues
 repository=https://github.com/federal-geospatial-platform/pub_ddr_processing
@@ -41,7 +41,7 @@ deprecated=False
 # plugin_dependencies=
 
 Category of the plugin: Raster, Vector, Database or Web
-category=Vector, Database
+category=Vector, Database, FGP
 
 # If the plugin can run on QGIS Server.
 server=False
