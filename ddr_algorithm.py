@@ -50,6 +50,8 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition)
+from .Utils import ControlFile, UserMessageException
+
 
 class ResponseCodes(object):
     """This class manages response codes from the DDR API """
@@ -100,12 +102,12 @@ class ResponseCodes(object):
             Utils.push_info(feedback, "INFO: A token or a refresh token is given to the user")
             json_response = response.json()
             # Store the access token in a global variable for access by other entry points
-            LOGIN_TOKEN.set_token(json_response["access_token"])
+            LoginToken.set_token(json_response["access_token"])
             expires_in = json_response["expires_in"]
             refresh_token = json_response["refresh_token"]
             refresh_expires_in = json_response["refresh_expires_in"]
             token_type = json_response["token_type"]
-            Utils.push_info(feedback, "INFO: ", f"Access token: {LOGIN_TOKEN.get_token(feedback)[0:29]}...")
+            Utils.push_info(feedback, "INFO: ", f"Access token: {LoginToken.get_token(feedback)[0:29]}...")
             Utils.push_info(feedback, "INFO: ", f"Expire in: {expires_in}")
             Utils.push_info(feedback, "INFO: ", f"Refresh token: {refresh_token[0:29]}...")
             Utils.push_info(feedback, "INFO: ", f"Refresh expire in: {refresh_expires_in}")
@@ -284,25 +286,28 @@ class ResponseCodes(object):
 class LoginToken(object):
     """This class manages the login token needed to call the different DDR API end points"""
 
-    def __init__(self):
+    # Class variable used to verify that the login class has been set
+    __initialization_flag = False
+    __token = None  # Store the unique value of the login
 
-        self.token = None
-
-    def set_token(self, token):
+    @staticmethod
+    def set_token(token):
         """This method sets the token """
 
-        self.token = token
+        LoginToken.__token = token
+        LoginToken.__initialization_flag = True
 
-    def get_token(self, feedback):
+    @staticmethod
+    def get_token(feedback):
         """This method allows to get the token. If the token is None than an error is rose because the login  was
            not done"""
 
-        if self.token is None:
+        if not LoginToken.__initialization_flag:
             # The token has hot been initialised (no login)
             Utils.push_info(feedback, f"ERROR: Login first...")
             raise UserMessageException("The user must login first before doing any access to the DDR")
 
-        return self.token
+        return LoginToken.__token
 
 
 class DdrInfo(object):
@@ -500,37 +505,6 @@ class DdrInfo(object):
 
 DDR_INFO = DdrInfo()
 
-LOGIN_TOKEN = LoginToken()
-
-@dataclass
-class ControlFile:
-    """Declare the fields in the control control file"""
-
-    download_info_id: str = None
-    email: str = None
-    metadata_uuid: str = None
-    qgis_server_id: str = None
-    download_package_name: str = ''
-    core_subject_term: str = ''
-    in_project_filename: str = None
-    language: str = None
-    gpkg_file_name: str = None           # Name of Geopackage containing the vector layers
-    control_file_dir: str = None         # Name of temporary directory
-    control_file_name: str = None        # Name of the control file
-    zip_file_name: str = None            # Name of the zip file
-    keep_files: str = None               # Name of the flag to keep the temporary files and directory
-    json_document: str = None            # Name of the JSON document
-    dst_qgs_project_name: str = None     # Name of the output QGIS project file
-    qgis_project_file_en: str = None     # Name of the input English QGIS project file
-    qgis_project_file_fr: str = None     # Name of the input French QGIS project file
-    out_qgs_project_file_en: str = None  # Name out the output English project file
-    out_qgs_project_file_fr: str = None  # Name out the output English project file
-    validation_type: str = None          # Name of the type of validation
-
-
-class UserMessageException(Exception):
-    """Exception raised when a message (likely an error message) needs to be sent to the User."""
-    pass
 
 class Utils:
     """Contains a list of static methods"""
@@ -645,7 +619,7 @@ class Utils:
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/czs_themes"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -660,7 +634,7 @@ class Utils:
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_departments"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -675,7 +649,7 @@ class Utils:
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_my_email"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -690,7 +664,7 @@ class Utils:
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_downloads"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -705,7 +679,7 @@ class Utils:
 
         url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_servers"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -1207,7 +1181,7 @@ class DdrPublish(QgsProcessingAlgorithm):
 
         url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
 
         Utils.push_info(feedback, f"INFO: Publishing to DDR")
@@ -1327,7 +1301,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
 
         url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
 
         Utils.push_info(feedback, f"INFO: Updating to DDR")
@@ -1446,7 +1420,7 @@ class DdrValidate(QgsProcessingAlgorithm):
         url = 'https://qgis.ddr-stage.services.geo.ca/api/validate'
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)
                    }
         data = {
             'operation': ctl_file.validation_type.lower()
@@ -1564,7 +1538,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
 
         url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LOGIN_TOKEN.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
         Utils.push_info(feedback, f"INFO: Publishing to DDR")
         Utils.push_info(feedback, f"INFO: HTTP Delete Request: {url}")
