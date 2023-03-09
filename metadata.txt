@@ -21,11 +21,13 @@ repository=https://github.com/federal-geospatial-platform/pub_ddr_processing
 hasProcessingProvider=yes
 # Uncomment the following line and add your changelog:
 changelog=
-    1.0.0 2023-03-31
+    1.0.0 2023-03-01
         - First release as a plugin
+    1.0.1 2023-03-09
+        - Code refactoring and new QGIS documentation
 
 # Tags are comma separated with spaces allowed
-tags=vector, publication, metadata
+tags=vector, publication, metadata, FGP
 
 homepage=https://github.com/federal-geospatial-platform/pub_ddr_processing
 icon=logo.png
