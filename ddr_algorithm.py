@@ -50,7 +50,168 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition)
-from .Utils import ControlFile, UserMessageException
+from .Utils import ControlFile, UserMessageException, DdrInfo, LoginToken
+
+
+
+class UtilsGui():
+    """Contains a list of static methods"""
+
+    HELP_USAGE = """
+        <b>Usage</b>
+        <u>Select the validation type</u>: <i>Publish</i>: For the publication of a collection; <i>Unpublish</i>: For deleting a collection; <i>Republish</i>: For updating an existing collection.  
+        <u>Select the English QGIS project file (.qgs)</u>: Select the project file with the ENGLISH layer description.
+        <u>Select the French QGIS project file (.qgs)</u>: Select the project file with the French layer description.
+        <u>Select the department</u>: Select which department own the publication.
+        <u>Enter the metadata UUID</u>: Enter the UUID associated to this UUID.
+        <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip ship (CZS)
+        <u>Select the download info ID</u>: Download ID info (no choice).
+        <u>Select the QGIS server</u>: Name of the QGIS server used for the publication (no choice).
+        <b>Advanced Parameters</b>
+        <u>Enter your email address</u>: Email address used to send publication notification.
+        <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
+        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Republish, Validate</i> process.</b>
+    """
+
+    @staticmethod
+    def add_login(self):
+        """Add Login menu"""
+
+        self.addParameter(
+            QgsProcessingParameterAuthConfig('AUTHENTICATION', 'Authentication Configuration', defaultValue=None))
+
+    @staticmethod
+    def add_validation_type(self):
+        """Add Select the the type of validation"""
+
+        lst_validation_type = ["Publish", "Republish", "Unpublish"]
+        self.addParameter(QgsProcessingParameterEnum(
+            name='VALIDATION_TYPE',
+            description=self.tr("Select the validation type"),
+            options=lst_validation_type,
+            defaultValue=lst_validation_type[0],
+            usesStaticStrings=True,
+            allowMultiple=False))
+
+    @staticmethod
+    def add_qgis_file(self):
+        """Add Select EN and FR project file menu"""
+
+        self.addParameter(
+            QgsProcessingParameterFile(
+                name='QGIS_FILE_EN',
+                description=' Select the English QGIS project file (.qgs)',
+                extension='qgs',
+                behavior=QgsProcessingParameterFile.File))
+
+        self.addParameter(
+            QgsProcessingParameterFile(
+                name='QGIS_FILE_FR',
+                description=' Select the French QGIS project file (.qgs)',
+                extension='qgs',
+                behavior=QgsProcessingParameterFile.File))
+
+    @staticmethod
+    def add_department(self):
+        """Add Select department menu"""
+
+        self.addParameter(QgsProcessingParameterEnum(
+            name='DEPARTMENT',
+            description=self.tr("Select the department"),
+            options=DdrInfo.get_department_lst(),
+            defaultValue="nrcan",
+            usesStaticStrings=True,
+            allowMultiple=False))
+
+    @staticmethod
+    def add_uuid(self):
+        """Add Select UUID menu"""
+
+        str_uuid = ""
+#        import uuid
+#        str_uuid = uuid.uuid4()
+        self.addParameter(QgsProcessingParameterString(
+            name="METADATA_UUID",
+            defaultValue=str(str_uuid),
+            description=self.tr('Enter the metadata UUID')))
+
+    @staticmethod
+    def add_download_info(self):
+        """Add Select download info menu"""
+
+        lst_download_info_id = DdrInfo.get_downloads_lst()
+        self.addParameter(QgsProcessingParameterEnum(
+            name='DOWNLOAD_INFO_ID',
+            description=self.tr("Select the download info ID"),
+            options=lst_download_info_id,
+            defaultValue=lst_download_info_id[0],
+            usesStaticStrings=True,
+            allowMultiple=False))
+
+    @staticmethod
+    def add_email(self):
+        """Add Select email menu"""
+
+        parameter = QgsProcessingParameterString(
+            name="EMAIL",
+            defaultValue=str(DdrInfo.get_email()),
+            description=self.tr('Enter your email address'))
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_qgs_server_id(self):
+        """Add Select server menu"""
+
+        lst_qgs_server_id = DdrInfo.get_servers_lst()
+        self.addParameter(QgsProcessingParameterEnum(
+            name='QGS_SERVER_ID',
+            description=self.tr('Select the QGIS server'),
+            options=lst_qgs_server_id,
+            defaultValue=lst_qgs_server_id[0],
+            usesStaticStrings=True,
+            allowMultiple=False))
+
+    @staticmethod
+    def add_csz_themes(self):
+        """Add Select themes menu"""
+
+        self.addParameter(QgsProcessingParameterEnum(
+            name='CSZ_THEMES',
+            description=self.tr("Select the Clip-Zip-Ship (CSZ) theme:"),
+            options=[""] + DdrInfo.get_theme_lst("en"),
+            usesStaticStrings=True,
+            allowMultiple=False,
+            optional=True))
+
+    @staticmethod
+    def add_keep_files(self):
+        """Add Keep file menu"""
+
+        lst_flag = ['Yes', 'No']
+        parameter = QgsProcessingParameterEnum(
+            name='KEEP_FILES',
+            description=self.tr('Keep temporary files (for debug purpose)'),
+            options=lst_flag,
+            defaultValue=lst_flag[1],
+            usesStaticStrings=True,
+            allowMultiple=False)
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def read_parameters(self, ctl_file, parameters, context, feedback):
+
+        ctl_file.department = self.parameterAsString(parameters, 'DEPARTMENT', context)
+        ctl_file.download_info_id = self.parameterAsString(parameters, 'DOWNLOAD_INFO_ID', context)
+        ctl_file.metadata_uuid = self.parameterAsString(parameters, 'METADATA_UUID', context)
+        ctl_file.email = self.parameterAsString(parameters, 'EMAIL', context)
+        ctl_file.qgs_server_id = self.parameterAsString(parameters, 'QGS_SERVER_ID', context)
+        ctl_file.keep_files = self.parameterAsString(parameters, 'KEEP_FILES', context)
+        ctl_file.csz_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
+        ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
+        ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
+        ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
 
 
 class ResponseCodes(object):
@@ -132,7 +293,7 @@ class ResponseCodes(object):
             msg = "Reading the available Clip Zip Ship Themes."
             Utils.push_info(feedback, f"INFO: {msg}")
             json_response = response.json()
-            DDR_INFO.add_themes(json_response)
+            DdrInfo.add_themes(json_response)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
         elif status == 403:
@@ -153,7 +314,7 @@ class ResponseCodes(object):
             msg = "Reading the available DDR departments."
             Utils.push_info(feedback, f"INFO: {msg}")
             json_response = response.json()
-            DDR_INFO.add_departments(json_response)
+            DdrInfo.add_departments(json_response)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
         elif status == 403:
@@ -174,7 +335,7 @@ class ResponseCodes(object):
             msg = "Reading the user email."
             Utils.push_info(feedback, f"INFO: {msg}")
             json_response = response.json()
-            DDR_INFO.add_email(json_response)
+            DdrInfo.add_email(json_response)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
         elif status == 403:
@@ -195,7 +356,7 @@ class ResponseCodes(object):
             msg = "The list of DDR Registry Downloads."
             Utils.push_info(feedback, f"INFO: {msg}")
             json_response = response.json()
-            DDR_INFO.add_downloads(json_response)
+            DdrInfo.add_downloads(json_response)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
         elif status == 403:
@@ -216,7 +377,7 @@ class ResponseCodes(object):
             msg = "The list of DDR Registry Servers."
             Utils.push_info(feedback, f"INFO: {msg}")
             json_response = response.json()
-            DDR_INFO.add_servers(json_response)
+            DdrInfo.add_servers(json_response)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
         elif status == 403:
@@ -283,229 +444,6 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, status, "Unknown error")
 
 
-class LoginToken(object):
-    """This class manages the login token needed to call the different DDR API end points"""
-
-    # Class variable used to verify that the login class has been set
-    __initialization_flag = False
-    __token = None  # Store the unique value of the login
-
-    @staticmethod
-    def set_token(token):
-        """This method sets the token """
-
-        LoginToken.__token = token
-        LoginToken.__initialization_flag = True
-
-    @staticmethod
-    def get_token(feedback):
-        """This method allows to get the token. If the token is None than an error is rose because the login  was
-           not done"""
-
-        if not LoginToken.__initialization_flag:
-            # The token has hot been initialised (no login)
-            Utils.push_info(feedback, f"ERROR: Login first...")
-            raise UserMessageException("The user must login first before doing any access to the DDR")
-
-        return LoginToken.__token
-
-
-class DdrInfo(object):
-    """This class holds and manages different information extracted from the DDR using the API"""
-
-    def __init__(self):
-
-        self.qgis_layer_name_en = None
-        self.qgis_layer_name_fr = None
-        self.short_name_en = None
-        self.short_name_fr = None
-        self.json_theme = []
-        self.json_department = []
-        self.json_email = []
-        self.json_downloads = None
-        self.json_servers = None
-
-    def init_project_file(self):
-
-        self.qgis_layer_name_en = []
-        self.qgis_layer_name_fr = []
-        self.short_name_en = []
-        self.short_name_fr = []
-
-    def add_layer(self, src_layer, language):
-
-        short_name = src_layer.shortName()
-
-        # validate that the short name is present
-        if short_name is None or short_name == "":
-            raise UserMessageException(f"The short name for layer {src_layer.name()} is missing")
-
-        # Validate that the short name is not duplicate
-        if language == "EN":
-            qgis_layer_name = self.qgis_layer_name_en
-        else:
-            qgis_layer_name = self.qgis_layer_name_fr
-
-        if short_name not in qgis_layer_name:
-            qgis_layer_name.append(short_name)
-        else:
-            raise UserMessageException(f"Duplicate short name {short_name} for layer {src_layer.name()}")
-
-    def get_layer_short_name(self, src_layer):
-        """Get the short name from the layer"""
-
-        return src_layer.shortName()
-
-    def get_nbr_layers(self):
-
-        a = len(self.qgis_layer_name_en)
-        b = len(self.qgis_layer_name_fr)
-        return max(a, b)
-
-
-    def add_email(self, json_email):
-        """Add the email associated to the login"""
-
-        self.json_email = json_email
-
-    def get_email(self):
-        """Get the login associated to the login"""
-
-        return self.json_email
-
-    def add_departments(self, json_department):
-        """Add the the departments from the JSON response structure
-           Verify the validity of the JSON structure"""
-
-        self.json_department = json_department
-        # Verify the structure/content of the JSON document
-        try:
-            for item in self.json_department:
-                acronym = item['qgis_data_store_root_subpath']
-        except KeyError:
-            # Bad structure raise an exception and crash
-            raise UserMessageException("Invalid structure of the JSON theme response from the DDR request")
-
-    def get_department_lst(self):
-        """Extract the departments in the form of a list"""
-
-        department_lst = []
-        for item in self.json_department:
-            department = item['qgis_data_store_root_subpath']
-            department_lst.append(department)
-
-        return department_lst
-
-    def add_themes(self, json_theme):
-        """Add the the themes from the JSON response structure
-           Verify the validity of the JSON structure"""
-
-        self.json_theme = json_theme
-        # Verify the structure/content of the JSON document
-        try:
-            for item in self.json_theme:
-                theme_uuid = item['theme_uuid']  # Just check that the key 'theme_uuid" exist
-                title = item['title']
-                # Replace the coma "," by a semi column ";" as QGIS processing enum does not like coma
-                title['en'] = title['en'].replace(',', ';')
-                title['fr'] = title['fr'].replace(',', ';')
-        except KeyError:
-            # Bad structure raise an exception and crash
-            raise UserMessageException("Invalid structure of the JSON theme response from the DDR request")
-
-    def get_theme_lst(self, language):
-        """Extract the themes in the form of a list"""
-
-        if language not in ["fr", "en"]:
-            raise UserMessageException("Internal error: Invalid language")
-        theme_lst = []
-        for item in self.json_theme:
-            title = item['title']
-            theme_lst.append(title[language])
-
-        return theme_lst
-
-    def get_theme_uuid(self, title):
-        """Get the theme UUID for a theme title
-           Raise an exception if the theme cannot be find in the list (should not happen...)"""
-
-        if title is None or title == "":
-
-            item_uuid = ""
-        else:
-            item_uuid = None
-            for item in self.json_theme:
-                item_uuid = item['theme_uuid']
-                item_title = item['title']
-                item_title_en = item_title['en']
-                item_title_fr = item_title['fr']
-                if title in (item_title_en, item_title_fr):
-                    break
-
-            if item_uuid is None:
-                # Nothing was found internal error
-                raise UserMessageException(f"Internal error: The 'title' is not found...")
-
-        return item_uuid
-
-    def add_downloads(self, json_downloads):
-        """Add the the downloads from the JSON response structure
-           Verify the validity of the JSON structure"""
-
-        self.json_downloads = json_downloads
-        # Verify the structure/content of the JSON document
-        try:
-            for item in self.json_downloads:
-                id_value = item['id']
-        except KeyError:
-            # Bad structure raise an exception and crash
-            raise UserMessageException("Invalid structure of the JSON Downloads response from the DDR request")
-
-    def get_downloads_lst(self):
-        """Extract the departments in the form of a list"""
-
-        downloads_lst = []
-        if self.json_downloads != None:
-            for item in self.json_downloads:
-                id_value = item['id']
-                downloads_lst.append(id_value)
-        else:
-            # Manage the case where the Login is not done and the JSON structure not filed
-            downloads_lst = ["<empty>"]
-
-        return downloads_lst
-
-    def add_servers(self, json_servers):
-        """Add the the servers from the JSON response structure
-           Verify the validity of the JSON structure"""
-
-        self.json_servers = json_servers
-        # Verify the structure/content of the JSON document
-        try:
-            for item in self.json_servers:
-                id_value = item['id']
-        except KeyError:
-            # Bad structure raise an exception and crash
-            raise UserMessageException("Invalid structure of the JSON Servers response from the DDR request")
-
-    def get_servers_lst(self):
-        """Extract the departments in the form of a list"""
-
-        servers_lst = []
-        if self.json_servers != None:
-            for item in self.json_servers:
-                id_value = item['id']
-                servers_lst.append(id_value)
-        else:
-            # Manage the case where the Login is not done and the JSON structure not filed
-            servers_lst = ["<empty>"]
-
-        return servers_lst
-
-
-DDR_INFO = DdrInfo()
-
-
 class Utils:
     """Contains a list of static methods"""
 
@@ -513,7 +451,7 @@ class Utils:
     def process_algorithm(self, process_type, parameters, context, feedback):
 
         # Init the project files by resetting the layers structures
-        DDR_INFO.init_project_file()
+        DdrInfo.init_project_file()
 
         # Create the control file data structure
         ctl_file = ControlFile()
@@ -574,7 +512,7 @@ class Utils:
         """Creation and writing of the JSON control file"""
 
         # Creation of the JSON control file
-        theme_uuid = DDR_INFO.get_theme_uuid(ctl_file.csz_collection_theme)
+        theme_uuid = DdrInfo.get_theme_uuid(ctl_file.csz_collection_theme)
 
         json_control_file = {
             "generic_parameters": {
@@ -737,7 +675,7 @@ class Utils:
             qgs_project = QgsProject.instance()
             for src_layer in qgs_project.mapLayers().values():
                 # Adding the name of the layers with the language
-                DDR_INFO.add_layer(src_layer, languange)
+                DdrInfo.add_layer(src_layer, languange)
 
             return out_qgs_project_file
 
@@ -763,38 +701,6 @@ class Utils:
         # Processing the English QGIS project file
         ctl_file.out_qgs_project_file_en = read_write_qgs(feedback, ctl_file.qgis_project_file_en, "EN")
 
-
-
-        """
-        # Read the French QGIS project
-        qgs_project.read(ctl_file.qgis_project_file_fr)
-        qgis_file_fr = Path(ctl_file.qgis_project_file_fr).name
-        ctl_file.out_qgs_project_file_fr = os.path.join(ctl_file.control_file_dir, qgis_file_fr)
-        qgs_project.write(ctl_file.out_qgs_project_file_fr)  # Write the project in the new directory
-        # Force the project properties "Save Paths" to be Relative
-        qgs_project.writeEntryBool("Paths", "Absolute", False)
-        qgs_project.write(ctl_file.out_qgs_project_file_fr)  # Rewrite the project with the new relative path
-        Utils.push_info(feedback, "INFO: QGIS project file save as: ", ctl_file.out_qgs_project_file_fr)
-
-        qgs_project = QgsProject.instance()
-        for src_layer in qgs_project.mapLayers().values():
-            DDR_INFO.add_layer(src_layer, "FR")
-
-        # Read the English QGIS project
-        qgs_project.read(ctl_file.qgis_project_file_en)
-        qgis_file_en = Path(ctl_file.qgis_project_file_en).name
-        ctl_file.out_qgs_project_file_en = os.path.join(ctl_file.control_file_dir, qgis_file_en)
-        qgs_project.write(ctl_file.out_qgs_project_file_en)  # Write the project in the new directory
-        # Force the project properties "Save Paths" to be Relative
-        qgs_project.writeEntryBool("Paths", "Absolute", False)
-        qgs_project.write(ctl_file.out_qgs_project_file_en)  # Rewrite the project with the new relative path
-        Utils.push_info(feedback, "INFO: QGIS project file save as: ", ctl_file.out_qgs_project_file_en)
-
-        qgs_project = QgsProject.instance()
-        for src_layer in qgs_project.mapLayers().values():
-            DDR_INFO.add_layer(src_layer, "EN")
-        """
-
     @staticmethod
     def copy_layer_gpkg(ctl_file, feedback):
         """Copy the selected layers in the GeoPackage file"""
@@ -802,7 +708,7 @@ class Utils:
         ctl_file.gpkg_file_name = os.path.join(ctl_file.control_file_dir, "qgis_vector_layers.gpkg")
         qgs_project = QgsProject.instance()
 
-        total = DDR_INFO.get_nbr_layers()  # Total number of layers to process
+        total = DdrInfo.get_nbr_layers()  # Total number of layers to process
         # Loop over each selected layers
         for i, src_layer in enumerate(qgs_project.mapLayers().values()):
             transform_context = QgsProject.instance().transformContext()
@@ -810,7 +716,7 @@ class Utils:
                 if src_layer.type() == QgsMapLayer.VectorLayer:
                     # Only copy vector layer
                     options = QgsVectorFileWriter.SaveVectorOptions()
-                    options.layerName = DDR_INFO.get_layer_short_name(src_layer)
+                    options.layerName = DdrInfo.get_layer_short_name(src_layer)
                     options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer if Path(
                         ctl_file.gpkg_file_name).exists() else QgsVectorFileWriter.CreateOrOverwriteFile
                     options.feedback = None
@@ -825,21 +731,6 @@ class Utils:
                     Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not vector ==> Not transferred")
             else:
                 Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not spatial ==> transferred")
-
-#    def _save_layer_style_in_database(self, layer):
-#        """
-#        Saves the layer style to DDR Postgres DB
-#        """
-#
-#        # Get the style name
-#        style_name = self._format_style_name(layer.name())
-#
-#        # Fetch the styles
-#        [count, style_ids, style_names, style_descs, error] = layer.listStylesInDatabase()
-#
-#        # Save it
-#        layer.saveStyleToDatabase(style_name, "", True, "")
-#        print(f">>Style '{style_name}' has been saved in the database")
 
     @staticmethod
     def set_layer_data_source(ctl_file, feedback):
@@ -856,7 +747,7 @@ class Utils:
                     if src_layer.type() == QgsMapLayer.VectorLayer:
 
                         qgs_layer_name = src_layer.name()
-                        gpkg_layer_name = DDR_INFO.get_layer_short_name(src_layer)
+                        gpkg_layer_name = DdrInfo.get_layer_short_name(src_layer)
                         uri = QgsProviderRegistry.instance().encodeUri('ogr',
                                                                        {'path': ctl_file.gpkg_file_name,
                                                                         'layerName': gpkg_layer_name})
@@ -933,164 +824,6 @@ class Utils:
             feedback.pushInfo(f"{str_date_time} - {str(message)}{line}")
 
 
-class UtilsGui():
-    """Contains a list of static methods"""
-
-    HELP_USAGE = """
-        <b>Usage</b>
-        <u>Select the English QGIS project file (.qgs)</u>: Select the project file with the ENGLISH layer description.
-        <u>Select the French QGIS project file (.qgs)</u>: Select the project file with the French layer description.
-        <u>Select the department</u>: Select which department own the publication.
-        <u>Enter the metadata UUID</u>: Enter the UUID associated to this UUID.
-        <u>Select the CSZ theme</u>: Select the theme under which the project will be published in the clip ship zip (CSZ)
-        <b>Advanced Parameters</b>
-        <u>Enter your email address</u>: Email address used to send publication notification.
-        <u>Select the download info ID</u>: Download ID info (no choice).
-        <u>Select the QGIS server</u>: Name of the QGIS server used for the publication (no choice).
-        <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
-    """
-
-    @staticmethod
-    def add_login(self):
-        """Add Login menu"""
-
-        self.addParameter(
-            QgsProcessingParameterAuthConfig('AUTHENTICATION', 'Authentication Configuration', defaultValue=None))
-
-    @staticmethod
-    def add_validation_type(self):
-        """Add Select the the type of validation"""
-
-        lst_validation_type = ["Publish", "Republish", "Unpublish"]
-        self.addParameter(QgsProcessingParameterEnum(
-            name='VALIDATION_TYPE',
-            description=self.tr("Select the validation type"),
-            options=lst_validation_type,
-            defaultValue=lst_validation_type[0],
-            usesStaticStrings=True,
-            allowMultiple=False))
-
-    @staticmethod
-    def add_qgis_file(self):
-        """Add Select EN and FR project file menu"""
-
-        self.addParameter(
-            QgsProcessingParameterFile(
-                name='QGIS_FILE_EN',
-                description=' Select the English QGIS project file (.qgs)',
-                extension='qgs',
-                behavior=QgsProcessingParameterFile.File))
-
-        self.addParameter(
-            QgsProcessingParameterFile(
-                name='QGIS_FILE_FR',
-                description=' Select the French QGIS project file (.qgs)',
-                extension='qgs',
-                behavior=QgsProcessingParameterFile.File))
-
-    @staticmethod
-    def add_department(self):
-        """Add Select department menu"""
-
-        self.addParameter(QgsProcessingParameterEnum(
-            name='DEPARTMENT',
-            description=self.tr("Select the department"),
-            options=DDR_INFO.get_department_lst(),
-            defaultValue="nrcan",
-            usesStaticStrings=True,
-            allowMultiple=False))
-
-    @staticmethod
-    def add_uuid(self):
-        """Add Select UUID menu"""
-
-        str_uuid = ""
-#        import uuid
-#        str_uuid = uuid.uuid4()
-        self.addParameter(QgsProcessingParameterString(
-            name="METADATA_UUID",
-            defaultValue=str(str_uuid),
-            description=self.tr('Enter the metadata UUID')))
-
-    @staticmethod
-    def add_download_info(self):
-        """Add Select download info menu"""
-
-        lst_download_info_id = DDR_INFO.get_downloads_lst()
-        self.addParameter(QgsProcessingParameterEnum(
-            name='DOWNLOAD_INFO_ID',
-            description=self.tr("Select the download info ID"),
-            options=lst_download_info_id,
-            defaultValue=lst_download_info_id[0],
-            usesStaticStrings=True,
-            allowMultiple=False))
-
-    @staticmethod
-    def add_email(self):
-        """Add Select email menu"""
-
-        parameter = QgsProcessingParameterString(
-            name="EMAIL",
-            defaultValue=str(DDR_INFO.get_email()),
-            description=self.tr('Enter your email address'))
-        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(parameter)
-
-    @staticmethod
-    def add_qgs_server_id(self):
-        """Add Select server menu"""
-
-        lst_qgs_server_id = DDR_INFO.get_servers_lst()
-        self.addParameter(QgsProcessingParameterEnum(
-            name='QGS_SERVER_ID',
-            description=self.tr('Select the QGIS server'),
-            options=lst_qgs_server_id,
-            defaultValue=lst_qgs_server_id[0],
-            usesStaticStrings=True,
-            allowMultiple=False))
-
-    @staticmethod
-    def add_csz_themes(self):
-        """Add Select themes menu"""
-
-        self.addParameter(QgsProcessingParameterEnum(
-            name='CSZ_THEMES',
-            description=self.tr("Select the theme under which you want to publish your project in the clip-zip-ship (CZS)"),
-            options=[""] + DDR_INFO.get_theme_lst("en"),
-            usesStaticStrings=True,
-            allowMultiple=False,
-            optional=True))
-
-    @staticmethod
-    def add_keep_files(self):
-        """Add Keep file menu"""
-
-        lst_flag = ['Yes', 'No']
-        parameter = QgsProcessingParameterEnum(
-            name='KEEP_FILES',
-            description=self.tr('Keep temporary files (for debug purpose)'),
-            options=lst_flag,
-            defaultValue=lst_flag[1],
-            usesStaticStrings=True,
-            allowMultiple=False)
-        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(parameter)
-
-    @staticmethod
-    def read_parameters(self, ctl_file, parameters, context, feedback):
-
-        ctl_file.department = self.parameterAsString(parameters, 'DEPARTMENT', context)
-        ctl_file.download_info_id = self.parameterAsString(parameters, 'DOWNLOAD_INFO_ID', context)
-        ctl_file.metadata_uuid = self.parameterAsString(parameters, 'METADATA_UUID', context)
-        ctl_file.email = self.parameterAsString(parameters, 'EMAIL', context)
-        ctl_file.qgs_server_id = self.parameterAsString(parameters, 'QGS_SERVER_ID', context)
-        ctl_file.keep_files = self.parameterAsString(parameters, 'KEEP_FILES', context)
-        ctl_file.csz_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
-        ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
-        ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
-        ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
-
-
 class DdrPublish(QgsProcessingAlgorithm):
     """Main class defining the Simplify algorithm as a QGIS processing algorithm.
     """
@@ -1113,7 +846,7 @@ class DdrPublish(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Publish Project File')
+        return self.tr('Publish Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1135,8 +868,8 @@ class DdrPublish(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """
-    This plugin publishes the layers stored in a .qgs project file to the QGS server DDR repository. \
-    It can only publish vector layer but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
+    This plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
+    It can only publish vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
     SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project file will follow. \
     A message is displayed in the log and an email is sent to the user informing the latter on the status of \
     the publication. 
@@ -1233,7 +966,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Update Project File')
+        return self.tr('Republish Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1255,9 +988,9 @@ class DdrUpdate(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """
-    This plugin publishes the layers stored in a .qgs project file to the QGS server DDR repository. \
-    It can only publish vector layer but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
-    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project file will follow. \
+    This plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
+    It can only republish vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
+    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project can be updated. \
     A message is displayed in the log and an email is sent to the user informing the latter on the status of \
     the publication. 
 
@@ -1353,7 +1086,7 @@ class DdrValidate(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Validate Project File')
+        return self.tr('Validate Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1373,11 +1106,11 @@ class DdrValidate(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """
-    This processing plugin validates the content of a QGIS project file (.qgs) and its control file. \
-    If the validation pass, the project can be publish the project in the QGIS server. If the validation fail, \
-    you can edit the QGIS project file and/or the control file and rerun the Validate Publication \
-    plugin. This plugin does not write anything into the QGIS server so you can rerun it safely until \
-    there is no error and than run the "Publish Vector Layer" Processing Plugin. """
+    This processing plugin validates the content of a QGIS project files (.qgs) FR and EN. If the validation \
+    pass, the project can be publish, republish or unpublish to the DDR repository. If the validation fail, \
+    you must edit the QGIS  and rerun the validation. This plugin does not write anything into the QGIS \
+    server so you can rerun it safely until there is no error and than run the appropriate tool (publish, \
+    unpublish or republish). """
 
         help_str += help_str + UtilsGui.HELP_USAGE
 
@@ -1477,7 +1210,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Unpublish Project File')
+        return self.tr('Unpublish Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1496,7 +1229,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
         """
-        help_str = """This processing plugin unpublishes the content of a QGIS project file (.qgs) stored in the QGIS Server.
+        help_str = """This processing plugin removes the content of a QGIS project file (.qgs) stored to the DDR repository.
         
         """
 
@@ -1518,8 +1251,6 @@ class DdrUnpublish(QgsProcessingAlgorithm):
 
         UtilsGui.add_qgis_file(self)
         UtilsGui.add_department(self)
-#        UtilsGui.add_uuid(self)
-#        UtilsGui.add_csz_themes(self)
         UtilsGui.add_email(self)
         UtilsGui.add_download_info(self)
         UtilsGui.add_qgs_server_id(self)
@@ -1588,7 +1319,7 @@ class DdrLogin(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('DDR Login')
+        return self.tr('Login')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1607,8 +1338,8 @@ class DdrLogin(QgsProcessingAlgorithm):
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
         """
-        help_str = """This processing plugin logins in the DDR repository server. The authentication operation is \
-        mandatory before  doing any management operation: publication, unpublication or validation. 
+        help_str = """This processing plugin logs into the DDR repository server. The authentication operation is \
+        mandatory before  doing any management operation: publication, unpublication republication, or validation. 
         """
 
         help_str = help_str + UtilsGui.HELP_USAGE
