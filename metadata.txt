@@ -25,6 +25,8 @@ changelog=
         - First release as a plugin
     1.0.1 2023-03-09
         - Code refactoring and new QGIS documentation
+    1.0.2 2023-04-17
+        - Modification for new my_email API signature
 
 # Tags are comma separated with spaces allowed
 tags=vector, publication, metadata, FGP
