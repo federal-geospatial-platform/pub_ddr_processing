@@ -9,7 +9,15 @@ import requests
 import json
 import unicodedata
 from urllib.request import urlopen, Request
+import json
 import re
+
+headers = '{"accept": "application/json", "charset":"utf-8"}'
+js = json.loads(headers)
+print (str(js))
+response = requests.post("http://localhost:3000/api/login", verify=False, headers=js)
+0/0
+
 
 text = b'\u00e8a'
 x = text.decode('unicode_escape')

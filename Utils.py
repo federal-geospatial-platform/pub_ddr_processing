@@ -127,6 +127,10 @@ class DdrInfo(object):
     __json_email = []
     __json_downloads = None
     __json_servers = None
+    __environment = None
+    __dict_environments = {'Production':'',
+                           'Staging':'https://qgis.ddr-stage.services.geo.ca',
+                           'Testing':'http://localhost:3000'}
 
     @staticmethod
     def init_project_file():
@@ -136,6 +140,22 @@ class DdrInfo(object):
         DdrInfo.__qgis_layer_name_fr = []
         DdrInfo.__short_name_en = []
         DdrInfo.__short_name_fr = []
+
+    @staticmethod
+    def add_environment(environment):
+        """Add and validate the execution environment"""
+
+        if environment in DdrInfo.__dict_environments:
+            DdrInfo.__environment = environment
+        else:
+            raise UserMessageException(f"The envrionment {environment} is invalid")
+
+    @staticmethod
+    def get_http_environment():
+        """Get the http address related to an environment"""
+
+        return DdrInfo.__dict_environments[DdrInfo.__environment]
+
 
     @staticmethod
     def add_layer(src_layer, language):
@@ -176,23 +196,12 @@ class DdrInfo(object):
         """Add the email associated to the login"""
 
         DdrInfo.__json_email = json_email
-        try:
-            email = DdrInfo.__json_email['email']
-
-        except KeyError:
-            # Bad structure raise an exception and crash
-            raise UserMessageException("Invalid structure of the JSON theme response from the DDR request")
 
     @staticmethod
     def get_email():
         """Get the login associated to the login"""
 
-        if DdrInfo.__json_email == []:
-            email = " "
-        else:
-            email = DdrInfo.__json_email['email']
-
-        return email
+        return DdrInfo.__json_email
 
     @staticmethod
     def add_departments(json_department):
@@ -336,57 +345,6 @@ class DdrInfo(object):
 class Utils:
     """Contains a list of static methods"""
 
-#    @staticmethod
-#    def process_algorithm(self, process_type, parameters, context, feedback):
-#
-#        # Init the project files by resetting the layers structures
-#        DdrInfo.init_project_file()
-#
-#        # Create the control file data structure
-#        ctl_file = ControlFile()
-#
-#        # Extract the parameters
-#        self.read_parameters(ctl_file, parameters, context, feedback)
-#
-#        # Copy the QGIS project file (.qgs)
-#        Utils.copy_qgis_project_file(ctl_file, feedback)
-#
-#        # Copy the selected layers in the GPKG file
-#        Utils.copy_layer_gpkg(ctl_file, feedback)
-#
-#        # Set the layer data source
-#        Utils.set_layer_data_source(ctl_file, feedback)
-#
-#        # Creation of the JSON control file
-#        Utils.create_json_control_file(ctl_file, feedback)
-#
-#        # Creation of the ZIP file
-#        Utils.create_zip_file(ctl_file, feedback)
-#
-#        # Validate the project file
-#        if process_type == "VALIDATE":
-#            DdrValidate.validate_project_file(ctl_file, parameters, context, feedback)
-#        elif process_type == "PUBLISH":
-#            # Publish the project file
-#            DdrPublish.publish_project_file(ctl_file, parameters, context, feedback)
-#        elif process_type == "UNPUBLISH":
-#            # Unpublish the project file
-#            DdrUnpublish.unpublish_project_file(ctl_file, parameters, context, feedback)
-#        elif process_type == "UPDATE":
-#            # Update the project file
-#            DdrUpdate.update_project_file(ctl_file, parameters, context, feedback)
-#        else:
-#            raise UserMessageException(f"Internal error. Unknown Process Type: {process_type}")
-#
-#        # Restoring original .qgs project file
-#        Utils.restore_original_project_file(ctl_file, feedback)
-#
-#        # Deleting the temporary directory and files
-#        # import web_pdb; web_pdb.set_trace()
-#        Utils.delete_dir_file(ctl_file, feedback)
-#
-#        return
-
     @staticmethod
     def get_date_time():
         """Extract the current date and time """
@@ -444,7 +402,9 @@ class Utils:
     def read_csz_themes(ctl_file, feedback):
         """Read the CSZ themes from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/czs_themes"
+        url = DdrInfo.get_http_environment()
+        url += "/api/czs_themes"
+        #url = "https://qgis.ddr-stage.services.geo.ca/api/czs_themes"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -459,7 +419,9 @@ class Utils:
     def read_ddr_departments(ctl_file, feedback):
         """Read the DDR departments from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_departments"
+        url = DdrInfo.get_http_environment()
+        url += "/api/ddr_departments"
+        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_departments"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -474,7 +436,9 @@ class Utils:
     def read_user_email(ctl_file, feedback):
         """Read the User Email from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_my_publisher_email"
+        url = DdrInfo.get_http_environment()
+        url += "/api/ddr_my_email"
+        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_my_email"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -489,7 +453,9 @@ class Utils:
     def read_downloads(ctl_file, feedback):
         """Read the Downloads from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_downloads"
+        url = DdrInfo.get_http_environment()
+        url += "/api/ddr_downloads"
+        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_downloads"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -504,7 +470,9 @@ class Utils:
     def read_servers(ctl_file, feedback):
         """Read the Servers from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_servers"
+        url = DdrInfo.get_http_environment()
+        url += "/api/ddr_servers"
+        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_servers"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -519,11 +487,12 @@ class Utils:
     def create_access_token(username, password, ctl_file, feedback):
         """Authentication of the username/password in order to get the access token"""
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/login'
+#        import web_pdb; web_pdb.set_trace()
+        url = DdrInfo.get_http_environment() + "/api/login"
+        #url = 'https://qgis.ddr-stage.services.geo.ca/api/login'
         headers = {"accept": "application/json",
                    "Content-type": "application/json",
                    "charset":"utf-8" }
-
         Utils.push_info(feedback, "INFO: Authentication to DDR")
         Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
         Utils.push_info(feedback, f"INFO: HTTP Headers: {headers}")
@@ -533,6 +502,7 @@ class Utils:
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.post(url, verify=False, headers=headers, json=json_doc)
+            print ('rep ', response)
 
             ResponseCodes.create_access_token(feedback, response)
 
@@ -824,7 +794,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_user_email(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_my_publisher_email
+        """This method manages the response codes for the DDR Publisher API Get /ddr_my_email
            This method extract the email associated with user login"""
 
         status = response.status_code
@@ -845,7 +815,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_downloads(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_registry_downloads
+        """This method manages the response codes for the DDR Publisher API Get /ddr_downloads
            This method extract the downloads associated with user login"""
 
         status = response.status_code
@@ -866,7 +836,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_servers(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_registry_servers
+        """This method manages the response codes for the DDR Publisher API Get /ddr_servers
            This method extract the downloads associated with user login"""
 
         status = response.status_code

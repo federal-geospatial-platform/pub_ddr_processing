@@ -28,17 +28,8 @@ QGIS Plugin for DDR manipulation
 """
 
 import os
-#import http.client
 import inspect
-#import json
 import requests
-#import shutil
-#import tempfile
-#import time
-#import zipfile
-#from datetime import datetime
-#from dataclasses import dataclass
-#from pathlib import Path
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessingParameterDistance,
@@ -69,7 +60,8 @@ class UtilsGui():
         <b>Advanced Parameters</b>
         <u>Enter your email address</u>: Email address used to send publication notification.
         <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
-        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Update, Validate</i> process.</b>
+        <u>Select execution environment (should be production)</u> : Name of the execution environment. 
+        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Republish, Validate</i> process.</b>
     """
 
     @staticmethod
@@ -83,7 +75,7 @@ class UtilsGui():
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
-        lst_validation_type = ["Publish", "Update", "Unpublish"]
+        lst_validation_type = ["Publish", "Republish", "Unpublish"]
         self.addParameter(QgsProcessingParameterEnum(
             name='VALIDATION_TYPE',
             description=self.tr("Select the validation type"),
@@ -193,6 +185,21 @@ class UtilsGui():
             description=self.tr('Keep temporary files (for debug purpose)'),
             options=lst_flag,
             defaultValue=lst_flag[1],
+            usesStaticStrings=True,
+            allowMultiple=False)
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_environment(self):
+        """Add Select environment menu"""
+
+        lst_flag = ['Production', 'Staging', 'Testing']
+        parameter = QgsProcessingParameterEnum(
+            name='ENVIRONMENT',
+            description=self.tr('Select execution environment (should be production)'),
+            options=lst_flag,
+            defaultValue=lst_flag[0],
             usesStaticStrings=True,
             allowMultiple=False)
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -352,7 +359,9 @@ class DdrPublish(QgsProcessingAlgorithm):
     def publish_project_file(ctl_file, parameters, context, feedback):
         """"""
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/publish'
+        url = DdrInfo.get_http_environment()
+        url += "/api/processes"
+        #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
@@ -472,7 +481,9 @@ class DdrUpdate(QgsProcessingAlgorithm):
     def update_project_file(ctl_file, parameters, context, feedback):
         """"""
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/update'
+        url = DdrInfo.get_http_environment()
+        url += "/api/processes"
+        #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
@@ -590,7 +601,9 @@ class DdrValidate(QgsProcessingAlgorithm):
         """"""
 
 #        import web_pdb; web_pdb.set_trace()
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/validate'
+        url = DdrInfo.get_http_environment()
+        url += "/api/validate"
+        #url = 'https://qgis.ddr-stage.services.geo.ca/api/validate'
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)
@@ -707,7 +720,9 @@ class DdrUnpublish(QgsProcessingAlgorithm):
     def unpublish_project_file(ctl_file, parameters, context, feedback):
         """Unpublish a QGIS project file """
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/unpublish'
+        url = DdrInfo.get_http_environment()
+        url += "/api/processes"
+        #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
@@ -799,11 +814,16 @@ class DdrLogin(QgsProcessingAlgorithm):
         """
 
         UtilsGui.add_login(self)
+        UtilsGui.add_environment(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
 
+#        import web_pdb; web_pdb.set_trace()
         auth_method = self.parameterAsString(parameters, 'AUTHENTICATION', context)
+        environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
+        Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
+        DdrInfo.add_environment(environment)
 
         # Get the application's authentication manager
         auth_mgr = QgsApplication.authManager()
