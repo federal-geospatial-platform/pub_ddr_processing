@@ -459,7 +459,7 @@ class Utils:
     def read_ddr_departments(ctl_file, feedback):
         """Read the DDR departments from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_departments"
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_departments"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -474,7 +474,7 @@ class Utils:
     def read_user_email(ctl_file, feedback):
         """Read the User Email from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_my_email"
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_my_publisher_email"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -489,7 +489,7 @@ class Utils:
     def read_downloads(ctl_file, feedback):
         """Read the Downloads from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_downloads"
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_downloads"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -504,7 +504,7 @@ class Utils:
     def read_servers(ctl_file, feedback):
         """Read the Servers from the service end point"""
 
-        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_servers"
+        url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_registry_servers"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -824,7 +824,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_user_email(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_my_email
+        """This method manages the response codes for the DDR Publisher API Get /ddr_my_publisher_email
            This method extract the email associated with user login"""
 
         status = response.status_code
@@ -845,7 +845,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_downloads(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_downloads
+        """This method manages the response codes for the DDR Publisher API Get /ddr_registry_downloads
            This method extract the downloads associated with user login"""
 
         status = response.status_code
@@ -866,7 +866,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def read_servers(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_servers
+        """This method manages the response codes for the DDR Publisher API Get /ddr_registry_servers
            This method extract the downloads associated with user login"""
 
         status = response.status_code

@@ -69,7 +69,7 @@ class UtilsGui():
         <b>Advanced Parameters</b>
         <u>Enter your email address</u>: Email address used to send publication notification.
         <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
-        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Republish, Validate</i> process.</b>
+        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Update, Validate</i> process.</b>
     """
 
     @staticmethod
@@ -83,7 +83,7 @@ class UtilsGui():
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
-        lst_validation_type = ["Publish", "Republish", "Unpublish"]
+        lst_validation_type = ["Publish", "Update", "Unpublish"]
         self.addParameter(QgsProcessingParameterEnum(
             name='VALIDATION_TYPE',
             description=self.tr("Select the validation type"),
@@ -352,7 +352,7 @@ class DdrPublish(QgsProcessingAlgorithm):
     def publish_project_file(ctl_file, parameters, context, feedback):
         """"""
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
+        url = 'https://qgis.ddr-stage.services.geo.ca/api/publish'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
@@ -472,7 +472,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
     def update_project_file(ctl_file, parameters, context, feedback):
         """"""
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
+        url = 'https://qgis.ddr-stage.services.geo.ca/api/update'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
@@ -707,7 +707,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
     def unpublish_project_file(ctl_file, parameters, context, feedback):
         """Unpublish a QGIS project file """
 
-        url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
+        url = 'https://qgis.ddr-stage.services.geo.ca/api/unpublish'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
