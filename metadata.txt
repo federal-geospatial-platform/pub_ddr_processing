@@ -6,7 +6,7 @@
 name=DDR Publication (processing)
 qgisMinimumVersion=3.22
 description=This plugin contains allows to publish, unpublish, edit and validate data collection in the FGP DDR.
-version=1.0.2
+version=1.0.3
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
@@ -27,6 +27,8 @@ changelog=
         - Code refactoring and new QGIS documentation
     1.0.2 2023-04-17
         - Modification for new my_email API signature
+    1.0.3 2023-05-30
+        - Modification for new end point names
 
 # Tags are comma separated with spaces allowed
 tags=vector, publication, metadata, FGP
