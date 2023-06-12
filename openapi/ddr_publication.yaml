@@ -1,0 +1,598 @@
+openapi: 3.0.1
+info:
+  title: DDR Publication API
+  description: This is the DDR Publication API.
+  version: 1.0.0
+servers:
+  - url: "{environment}/api"
+    description: DDR Publication API url
+    variables:
+      environment:
+        default: https://qgis.ddr-stage.services.geo.ca
+        enum:
+          - https://qgis.ddr-stage.services.geo.ca
+          - https://localhost:5031
+
+paths:
+  /login:
+    post:
+      summary: Generates a JWT for a given User
+      description: |
+        Generates a JWT for a given User. This endpoint takes a username and password credentials and authenticates with LDAP. Upon success, a JSON is returned with the following properties:
+        * `access_token`: the bearer token which can be used in endpoint headers to send credentials;
+        * `expires_in`: the number of seconds until the token expires;
+        * `refresh_token`: the token to use to refresh the user credentials when the `access_token` has expired;
+        * `refresh_expires_in`: the number of seconds until the `refresh_token` expires;
+        * `token_type`: the token type, this is always Bearer
+      operationId: routes.rt_api.login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /logout:
+    delete:
+      summary: Logs out the User from the API
+      description: Logs out the User from the API. This endpoint invalidates the token completely, from any attempts from any system, forever.
+      operationId: routes.rt_api.logout
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description:
+            Successfully logged out and revoked the authentication token forever
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Authentication
+
+  /refresh:
+    post:
+      summary: Re-generates a JWT using a refresh token
+      description: Re-generates a JWT using a refresh token. This endpoint can be used to regenerate an access_token when the later has expired.
+      operationId: routes.rt_api.refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /services/{schema}:
+    get:
+      summary: Uses PyQGIS to retrieve the list of services on the given schema.
+      description: Lists the services on the given schema. This endpoint calls PyQGIS routines to query the services on a given schema in the database. It is different than DDR Registry's get services which returns the data from the registry, not PyQGIS necessarily.
+      operationId: routes.rt_api.get_info_schema
+      parameters:
+        - name: schema
+          in: path
+          required: true
+          schema:
+            type: string
+            example: nrcan
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The list of Services
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /services/{schema}/{service_name}:
+    get:
+      summary:  Uses PyQGIS to read information on an existing service
+      description: Returns information inside a particular QGIS service project. This endpoint calls PyQGIS routines to open a QGIS service, read its contents, and return information on it in a JSON format.
+      operationId: routes.rt_api.get_info_service
+      parameters:
+        - name: schema
+          in: path
+          required: true
+          schema:
+            type: string
+            example: nrcan
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: national_parks_boundaries_en
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The information on the Service
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /ddr_registry_departments:
+    get:
+      summary: Gets the Departments that the currently logged in User/Publisher has access to.
+      description: Returns the departments that the currently logged in User/Publisher has access to. This endpoint redirects the call to the DDR Registry.
+      operationId: routes.rt_api.get_ddr_departments
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The list of DDR Registry Departments
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /ddr_registry_servers:
+    get:
+      summary: Gets the Servers that the currently logged in User/Publisher has access to.
+      description: Returns the servers that the currently logged in User/Publisher has access to. This endpoint redirects the call to the DDR Registry.
+      operationId: routes.rt_api.get_ddr_servers
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The list of DDR Registry Servers
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /ddr_registry_downloads:
+    get:
+      summary: Gets the Downloads that the currently logged in User/Publisher has access to.
+      description: Returns the downloads that the currently logged in User/Publisher has access to. This endpoint redirects the call to the DDR Registry in order to fetch the Downloads.
+      operationId: routes.rt_api.get_ddr_downloads
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The list of DDR Registry Downloads
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /ddr_registry_my_publisher_email:
+    get:
+      summary: Gets the email of the logged in user according to their email in the DDR Registry.
+      description: Returns the email of the logged in user according to their email in the Publishers in the DDR Registry.
+      operationId: routes.rt_api.get_ddr_my_email
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The email of the logged in user
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /czs_themes:
+    get:
+      summary: Gets the Clip Zip Ship Themes
+      description: Returns the available Clip Zip Ship Themes. This endpoint redirects the call to the CZS API in order to fetch the Themes.
+      operationId: routes.rt_api.get_czs_themes
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/Themes'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /compare:
+    post:
+      summary: Compares a service provided via a control file vs a service of the same name stored in the database.
+      description: Compares a service provided via a control file vs a service of the same name stored in the database.
+      operationId: routes.rt_api.post_compare
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessAdd'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The information the API was able to read from the project file
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /validate:
+    post:
+      summary: Validates an input package
+      description: Reads and validates information in the control file and the QGIS project(s) provided in the .zip file.
+      operationId: routes.rt_api.post_validate
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessValidate'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The information the API was able to read from the project file
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Services
+
+  /publish:
+    put:
+      summary: Loads the data and publishes the project file(s) in QGIS Server
+      description: This endpoint takes an input package, validates it, imports the data in DDR, publishes the QGIS services, and sends an email to the publisher indicating the success or failure of the publication(s).
+      operationId: routes.rt_api.put_services
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessAdd'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully exported the data and published the project file(s) in QGIS Server
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Processes
+
+  /update:
+    patch:
+      summary: Updates the data and re-publishes the project file(s) in QGIS Server
+      description: This endpoint takes an input package, validates it, updates the data in DDR, re-publishes the QGIS services, and sends an email to the publisher indicating the success or failure of the re-publication(s).
+      operationId: routes.rt_api.patch_services
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessUpdate'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the data and re-published the project file(s) in QGIS Server
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Processes
+
+  /unpublish:
+    delete:
+      summary: Deletes a service and its linked data from QGIS Server
+      description: This endpoint takes an input package, validates it, unpublishes the QGIS services, deletes the data from DDR, and sends an email to the publisher indicating the success or failure of the unpublication(s).
+      operationId: routes.rt_api.delete_services
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProcessDelete'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Service
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Processes
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: flask_jwt_extended.decode_token
+
+  parameters:
+    f:
+      name: f
+      description: The optional f parameter indicates the output format which the
+        server shall provide as part of the response document. The default format
+        is GeoJSON.
+      explode: false
+      in: query
+      required: false
+      schema:
+        default: json
+        enum:
+        - json
+        - html
+        - jsonld
+        type: string
+      style: form
+    lang:
+      name: lang
+      description: The optional lang parameter instructs the server return a response
+        in a certain language, if supported. If the language is not among the available
+        values, the Accept-Language header language will be used if it is supported.
+        If the header is missing, the default server language is used. Note that providers
+        may only support a single language (or often no language at all), that can
+        be different from the server language. Language strings can be written in
+        a complex (e.g. "fr-CA,fr;q=0.9,en-US;q=0.8,en;q=0.7"), simple (e.g. "de")
+        or locale-like (e.g. "de-CH" or "fr_BE") fashion.
+      in: query
+      required: false
+      schema:
+        default: en-US
+        enum:
+        - en-US
+        - fr-CA
+        type: string
+
+  responses:
+    AccessToken:
+      description: An access token and a refresh token for a given User
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AccessTokenResponse'
+    InvalidCredentials:
+      description: Invalid credentials provided.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Bad request received on server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+            example: "Bearer"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedInvalidScopeError:
+      description: Access token does not have the required scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UserNotFound:
+      description: User with given username not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InvalidParameter:
+      description: A query parameter has an invalid value.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/exception'
+        text/html:
+          schema:
+            type: string
+
+    NotFound:
+      description: The requested URI was not found.
+
+    InternalError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: A server error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/exception'
+        text/html:
+          schema:
+            type: string
+
+    Themes:
+      description: Themes information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ThemesResponse'
+
+  schemas:
+    UserLogin:
+      type: object
+      properties:
+        username:
+          type: string
+          example: alexandre-roy
+        password:
+          type: string
+          example: PASSWORD
+
+    ProcessValidate:
+      type: object
+      properties:
+        operation:
+          description: The operation that the validation should happen. Possible values are 'publish', 'update' or 'unpublish'
+          type: string
+          example: publish
+        zip_file:
+          type: string
+          format: binary
+
+    ProcessAdd:
+      type: object
+      properties:
+        zip_file:
+          type: string
+          format: binary
+
+    ProcessUpdate:
+      type: object
+      properties:
+        zip_file:
+          type: string
+          format: binary
+
+    ProcessDelete:
+      type: object
+      properties:
+        zip_file:
+          type: string
+          format: binary
+
+    RefreshToken:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+
+    ThemesResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          theme_uuid:
+            type: string
+          title:
+            type: object
+            properties:
+              en:
+                type: string
+              fr:
+                type: string
+
+    AccessTokenResponse:
+      required:
+        - access_token
+        - expires_in
+        - refresh_token
+        - refresh_expires_in
+        - token_type
+      properties:
+        access_token:
+          type: string
+          description: The access JWT token for the User
+        expires_in:
+          type: integer
+          description: The number of seconds until the token expires
+        refresh_token:
+          type: string
+          description: The refresh JWT token for the User
+        refresh_expires_in:
+          type: integer
+          description: The number of seconds until the refresh token expires
+        token_type:
+          type: string
+          description: The token type, always Bearer
+          example: Bearer
+
+    ErrorResponse:
+      required:
+        - status
+        - title
+        - detail
+      properties:
+        status:
+          type: integer
+          description: Error type (401, 402, 403, 500, etc).
+        title:
+          type: string
+          description: Error title
+        detail:
+          type: string
+          description: Error description
+        detail_fr:
+          type: string
+          description: Error description in French
+        type:
+          type: string
+          description: Error type
+
+    exception:
+      type: object
+      description: |-
+        Information about the exception: an error code plus an optional description.
+      required:
+        - code
+      properties:
+        code:
+          type: string
+        description:
+          type: string

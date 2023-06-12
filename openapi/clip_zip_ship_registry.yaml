@@ -1,0 +1,953 @@
+﻿openapi: 3.0.1
+info:
+  title: Clip Zip Ship Registry API
+  description: This is the Clip Zip Ship Registry API
+  version: 1.0.0
+servers:
+  - url: "{environment}/api"
+    description: Clip Zip Ship Registry API url
+    variables:
+      environment:
+        default: https://czs-api.ddr-stage.services.geo.ca
+        enum:
+          - https://czs-api.ddr-stage.services.geo.ca
+          - https://localhost:5001
+
+paths:
+  /login:
+    post:
+      summary: Generates a JWT for a given User
+      description: |
+        Generates a JWT for a given User. This endpoint takes a username and password credentials and authenticates with LDAP. Upon success, a JSON is returned with the following properties:
+        * `access_token`: the bearer token which can be used in endpoint headers to send credentials;
+        * `expires_in`: the number of seconds until the token expires;
+        * `refresh_token`: the token to use to refresh the user credentials when the `access_token` has expired;
+        * `refresh_expires_in`: the number of seconds until the `refresh_token` expires;
+        * `token_type`: the token type, this is always Bearer
+      operationId: routes.rt_api.login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /logout:
+    delete:
+      summary: Logs out the User from the API
+      description: Logs out the User from the API
+      operationId: routes.rt_api.logout
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description:
+            Successfully logged out and revoked the authentication token forever
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Authentication
+
+  /refresh:
+    post:
+      summary: Re-generates a JWT using a refresh token
+      description: Re-generates a JWT using a refresh token
+      operationId: routes.rt_api.refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /users:
+    get:
+      summary: Lists the users
+      description: Lists the users in the system and their roles
+      operationId: routes.rt_api.get_users
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: List of Users
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - User
+
+  /user:
+    post:
+      summary: Creates a new User in the database
+      description: The User to create. Username is case insensitive.
+      operationId: routes.rt_api.post_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      security:
+        - BearerAuth: [ ]
+      responses:
+        201:
+          description: Successfully created the User
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - User
+
+  /user/{username}:
+    delete:
+      summary: Deletes a User from the database
+      description: The User to delete. Username is case insensitive.
+      operationId: routes.rt_api.delete_user
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the User
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/UserNotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - User
+
+  /collections:
+    get:
+      summary: Gets the collections given filters
+      description: Gets the collections given filters
+      operationId: routes.rt_api.get_collections
+      parameters:
+        - name: metadata_uuid
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 62de5952-a5eb-4859-b086-22a8ba8024b8
+        - name: parent_uuid
+          in: query
+          required: false
+          schema:
+            type: string
+            example: 17e4197a-a764-475d-ab67-a2fb920e2300
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Collections'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Collections
+
+    put:
+      summary: Adds a new Collection
+      description: Adds a new Collection
+      operationId: routes.rt_api.put_collections
+      parameters:
+        - name: reload_pygeoapi
+          in: query
+          required: false
+          schema:
+            type: boolean
+            example: false
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionAdd'
+        description: Mandatory execute request JSON
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Collection
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Collections
+
+  /collections/{collection}:
+    get:
+      summary: Gets the collection information
+      description: Gets the collection information
+      operationId: routes.rt_api.get_collection
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+            example: national_parks___nationallakesboundaries
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Collections'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Collections
+
+    patch:
+      summary: Updates a Collection in the database
+      description: The Collection to update.
+      operationId: routes.rt_api.patch_collection
+      parameters:
+        - name: collection
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "coll_name"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionPatch'
+        description: Mandatory execute request JSON
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Collection
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/UserNotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Collections
+
+    delete:
+      summary: Deletes a Collection
+      description: Deletes a Collection
+      operationId: routes.rt_api.delete_collection
+      parameters:
+      - name: collection
+        in: path
+        description: Collection name to delete
+        required: true
+        schema:
+          type: string
+          example: "coll_name"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the collection
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Collections
+
+  /collections/metadata/{metadata_uuid}:
+    delete:
+      summary: Deletes all Collections linked to a given Metadata UUID. When no more collections remain on the Parent, the Parent is also deleted.
+      description: Deletes all Collections linked to a given Metadata UUID. When no more collections remain on the Parent, the Parent is also deleted.
+      operationId: routes.rt_api.delete_collection_by_metadata
+      parameters:
+      - name: metadata_uuid
+        in: path
+        description: Metadata UUID of the Collections to delete
+        required: true
+        schema:
+          type: string
+          example: "62de5952-a5eb-4859-b086-22a8ba8024b7"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Collections
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Collections
+
+  /metadata/{uuid}:
+    get:
+      summary: Gets the FGP metadata for the uuid
+      description: Queries the FGP for the metadata.
+      operationId: routes.rt_api.get_metadata
+      parameters:
+      - name: uuid
+        in: path
+        description: The metadata unique identifier
+        required: true
+        schema:
+          type: string
+          example: "62de5952-a5eb-4859-b086-22a8ba8024b8"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Metadata'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Admin
+
+  /themes:
+    get:
+      summary: Get the list of available Themes for the Parents
+      description: Queries the Themes for the Parents.
+      operationId: routes.rt_api.get_themes
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Themes'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Admin
+
+  /parents:
+    get:
+      summary: Get the list of available Parents for the Collections
+      description: Queries the Parents for the Collections.
+      operationId: routes.rt_api.get_parents
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Parents'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Admin
+
+    put:
+      summary: Adds a new Parent
+      description: Adds a new Parent
+      operationId: routes.rt_api.put_parent
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParentAdd'
+        description: Mandatory execute request JSON
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        201:
+          description: The Parent UUID when successfully created
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Admin
+
+  /parents/{uuid}:
+    delete:
+      summary: Deletes a Parent
+      description: Deletes a Parent
+      operationId: routes.rt_api.delete_parent
+      parameters:
+      - name: uuid
+        in: path
+        description: Parent UUID to delete
+        required: true
+        schema:
+          type: string
+          example: "97e4197a-a764-475d-ab67-a2fb920e2300"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Parent
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Admin
+
+  /extent/{schema}/{table_name}/{out_crs}:
+    post:
+      summary: Gets the extent of the given table name
+      description: Queries the bounding box extent for the given table name.
+      operationId: routes.rt_api.get_extent
+      parameters:
+      - name: schema
+        in: path
+        description: The schema name in which to look for the table
+        required: true
+        schema:
+          type: string
+          example: "nrcan"
+      - name: table_name
+        in: path
+        description: The table name for which to retrieve the bounding box extent
+        required: true
+        schema:
+          type: string
+          example: "Metal mines"
+      - name: out_crs
+        in: path
+        description: The expected crs we want the extent coordinates into
+        required: true
+        schema:
+          type: integer
+          example: 4326
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetExtent'
+        description: Mandatory execute request JSON
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          $ref: '#/components/responses/Extent'
+        '400':
+          $ref: '#/components/responses/InvalidParameter'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Admin
+
+components:
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: flask_jwt_extended.decode_token
+
+  parameters:
+    f:
+      name: f
+      description: The optional f parameter indicates the output format which the
+        server shall provide as part of the response document. The default format
+        is GeoJSON.
+      explode: false
+      in: query
+      required: false
+      schema:
+        default: json
+        enum:
+        - json
+        - html
+        - jsonld
+        type: string
+      style: form
+    lang:
+      name: lang
+      description: The optional lang parameter instructs the server return a response
+        in a certain language, if supported. If the language is not among the available
+        values, the Accept-Language header language will be used if it is supported.
+        If the header is missing, the default server language is used. Note that providers
+        may only support a single language (or often no language at all), that can
+        be different from the server language. Language strings can be written in
+        a complex (e.g. "fr-CA,fr;q=0.9,en-US;q=0.8,en;q=0.7"), simple (e.g. "de")
+        or locale-like (e.g. "de-CH" or "fr_BE") fashion.
+      in: query
+      required: false
+      schema:
+        default: en-US
+        enum:
+        - en-US
+        - fr-CA
+        type: string
+
+  responses:
+    AccessToken:
+      description: An access token and a refresh token for a given User
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AccessTokenResponse'
+    InvalidCredentials:
+      description: Invalid credentials provided.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: Bad request received on server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+            example: "Bearer"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnauthorizedInvalidScopeError:
+      description: Access token does not have the required scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    CollectionNotFound:
+      description: Collection information with given id not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UserNotFound:
+      description: User with given username not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    FeatureTableNotFound:
+      description: Table with given name not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InvalidParameter:
+      description: |-
+        A query parameter has an invalid value.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/exception'
+        text/html:
+          schema:
+            type: string
+    NotFound:
+      description: |-
+        The requested URI was not found.
+    ServerError:
+      description: |-
+        A server error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/exception'
+        text/html:
+          schema:
+            type: string
+    Metadata:
+      description: Metadata information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MetadataResponse'
+    Extent:
+      description: Extent bounding box information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ExtentResponse'
+    Themes:
+      description: Themes information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ThemesResponse'
+    Parents:
+      description: Parents information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ParentsResponse'
+    Collections:
+      description: Collections information
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CollectionsResponse'
+
+  schemas:
+    MetadataResponse:
+      type: object
+      properties:
+        uuid:
+          type: string
+        title_en:
+          type: string
+        title_fr:
+          type: string
+        keywords_en:
+          type: array
+          items:
+            type: string
+        keywords_fr:
+          type: array
+          items:
+            type: string
+        cogs:
+          type: array
+          items:
+            type: object
+
+    ExtentResponse:
+      type: string
+
+    ThemesResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          theme_uuid:
+            type: string
+          title:
+            type: object
+            properties:
+              en:
+                type: string
+              fr:
+                type: string
+
+    ParentsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          theme_uuid:
+            type: string
+          title:
+            type: object
+            properties:
+              en:
+                type: string
+              fr:
+                type: string
+          parents:
+            type: array
+            items:
+              type: object
+              properties:
+                parent_uuid:
+                  type: string
+                title:
+                  type: object
+                  properties:
+                    en:
+                      type: string
+                    fr:
+                      type: string
+
+    CollectionsResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          collection_name:
+            type: string
+          collection_title_en:
+            type: string
+          collection_title_fr:
+            type: string
+          metadata_identifier:
+            type: string
+          parent_uuid:
+            type: string
+
+    ParentAdd:
+      type: object
+      properties:
+        theme_uuid:
+          type: string
+          example: e7087e59-a57f-432b-81db-065f4d40e797
+        name_en:
+          type: string
+          example: "Name"
+        name_fr:
+          type: string
+          example: "Nom"
+        title_en:
+          type: string
+          example: "Title"
+        title_fr:
+          type: string
+          example: "Titre"
+        org_schema:
+          type: string
+          example: "nrcan"
+
+    CollectionAdd:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "feature"
+        parent_uuid:
+          type: string
+          example: 17e4197a-a764-475d-ab67-a2fb920e2300
+        metadata_uuid:
+          type: string
+          example: f5f2db55-31e4-42fb-8c73-23e1c44de9b2
+        name:
+          type: string
+          example: "coll_name"
+        title_en:
+          type: string
+          example: "coll_title_en"
+        title_fr:
+          type: string
+          example: "coll_title_fr"
+        description_en:
+          type: string
+          example: "coll_desc_en"
+        description_fr:
+          type: string
+          example: "coll_desc_fr"
+        keywords_en:
+          type: array
+          items:
+            type: string
+          example: ['Canada', 'National']
+        keywords_fr:
+          type: array
+          items:
+            type: string
+          example: ['Canada', 'National']
+        crs:
+          type: integer
+          example: 3978
+        extent_bbox:
+          type: array
+          items:
+            type: number
+          example:
+            - -141.0
+            - 40.04
+            - -47.74
+            - 86.46
+        extent_crs:
+          type: string
+          example: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+        extent_temporal_begin:
+          type: string
+          format: date
+          example: 2022-06-14
+        extent_temporal_end:
+          type: string
+          format: date
+          example: 2022-06-15
+        geom_wkt:
+          type: string
+          example: POLYGON((-113.43 53.51, -113.43 53.59, -113.22 53.59, -113.22 53.51, -113.43 53.51))
+        geom_crs:
+          type: integer
+          example: 4617
+        db_host:
+          type: string
+          example: 10.68.130.179
+        db_port:
+          type: integer
+          example: 5432
+        db_name:
+          type: string
+          example: postgres
+        db_user:
+          type: string
+          example: postgres
+        db_password:
+          type: string
+          example: password
+        table_name:
+          type: string
+          example: mines_de_métaux
+        table_schema:
+          type: string
+          example: nrcan
+        table_id_field:
+          type: string
+          example: OBJECTID
+        table_queryables:
+          type: array
+          items:
+            type: string
+          example:
+            - attribute_name_1
+            - attribute_name_2
+        cov_data:
+          type: string
+          example: https://datacube-prod-data-public.s3.ca-central-1.amazonaws.com/store/eo4ce/landcover/landcover-2010-cog.tif
+        cov_format_name:
+          type: string
+          example: GTiff
+
+    CollectionPatch:
+      type: object
+      properties:
+        geometry:
+          type: boolean
+          example: true
+
+    GetExtent:
+      type: object
+      properties:
+        db_host:
+          type: string
+          example: 10.68.130.179
+        db_port:
+          type: integer
+          example: 5432
+        db_name:
+          type: string
+          example: postgres
+        db_user:
+          type: string
+          example: postgres
+        db_password:
+          type: string
+          example: password
+
+    Language:
+      type: object
+      properties:
+        en:
+          type: string
+          example: "Text in english"
+        fr:
+          type: string
+          example: "Texte en français"
+
+    UserLogin:
+      type: object
+      properties:
+        username:
+          type: string
+          example: alexandre-roy
+        password:
+          type: string
+          example: PASSWORD
+
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+          example: John
+
+    RefreshToken:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+    AccessTokenResponse:
+      required:
+        - access_token
+        - expires_in
+        - refresh_token
+        - refresh_expires_in
+        - token_type
+      properties:
+        access_token:
+          type: string
+          description: The access JWT token for the User
+        expires_in:
+          type: integer
+          description: The number of seconds until the token expires
+        refresh_token:
+          type: string
+          description: The refresh JWT token for the User
+        refresh_expires_in:
+          type: integer
+          description: The number of seconds until the refresh token expires
+        token_type:
+          type: string
+          description: The token type, always Bearer
+          example: Bearer
+    ErrorResponse:
+      required:
+        - status
+        - title
+        - detail
+      properties:
+        status:
+          type: integer
+          description: Error type (401, 402, 403, 500, etc).
+        title:
+          type: string
+          description: Error title
+        detail:
+          type: string
+          description: Error description
+        detail_fr:
+          type: string
+          description: Error description in French
+        type:
+          type: string
+          description: Error type
+    exception:
+      type: object
+      description: |-
+        Information about the exception: an error code plus an optional description.
+      required:
+        - code
+      properties:
+        code:
+          type: string
+        description:
+          type: string

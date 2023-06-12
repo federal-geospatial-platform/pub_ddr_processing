@@ -1,0 +1,1939 @@
+﻿openapi: 3.0.1
+info:
+  title: DDR Registry API
+  description: This is the DDR Registry API
+  version: 1.0.0
+servers:
+  - url: "{environment}/api"
+    description: DDR Registry API url
+    variables:
+      environment:
+        default: https://registry-api.ddr-stage.services.geo.ca
+        enum:
+          - https://registry-api.ddr-stage.services.geo.ca
+          - https://localhost:5021
+
+paths:
+  /login:
+    post:
+      summary: Generates a JWT for a given User
+      description: |
+        Generates a JWT for a given User. This endpoint takes a username and password credentials and authenticates with LDAP. Upon success, a JSON is returned with the following properties:
+        * `access_token`: the bearer token which can be used in endpoint headers to send credentials;
+        * `expires_in`: the number of seconds until the token expires;
+        * `refresh_token`: the token to use to refresh the user credentials when the `access_token` has expired;
+        * `refresh_expires_in`: the number of seconds until the `refresh_token` expires;
+        * `token_type`: the token type, this is always Bearer
+      operationId: routes.rt_api.login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /logout:
+    delete:
+      summary: Logs out the User from the API
+      description: Logs out the User from the API. This endpoint invalidates the token completely, from any attempts from any system, forever.
+      operationId: routes.rt_api.logout
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description:
+            Successfully logged out and revoked the authentication token forever
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+      tags:
+        - Authentication
+
+  /refresh:
+    post:
+      summary: Re-generates a JWT using a refresh token
+      description: Re-generates a JWT using a refresh token. This endpoint can be used to regenerate an access_token when the later has expired.
+      operationId: routes.rt_api.refresh
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+      responses:
+        200:
+          $ref: '#/components/responses/AccessToken'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        401:
+          $ref: '#/components/responses/InvalidCredentials'
+      tags:
+        - Authentication
+
+  /publishers:
+    get:
+      summary: Lists the Publishers
+      description: Lists the Publishers in the system and their roles
+      operationId: routes.rt_api.get_publishers
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/PublisherListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+    put:
+      summary: Adds a new Publisher
+      description: The Publisher to create. This endpoint creates a Publisher in the Registry database and calls the corresponding stored procedure in the Publisher database.
+      operationId: routes.rt_api.put_publishers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublisherAdd'
+        description: |-
+          Json Body to create a record.
+          The following properties must be set
+            - name, the name
+            - email, the email
+            - ad_user_name, the ldap username
+            - departments, the list of departments acronyms to assign the publisher to
+          The following properties may be set
+            - admin_flag, true if an admin
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Publisher
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+  /publishers/{email}:
+    get:
+      summary: Gets a single Publisher information
+      description: Gets a specific Publisher information
+      operationId: routes.rt_api.get_publisher
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/PublisherResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+    patch:
+      summary: Updates a Publisher
+      description: The Publisher to update. Email is case insensitive.
+      operationId: routes.rt_api.patch_publisher
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublisherPatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /name
+            - /ad_user_name
+            - /email
+            - /admin_flag
+            - /departments (list of English department acronyms)
+            Note, be mindful when editing email or ad_user_name as those serve as the keys
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Publisher
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+    delete:
+      summary: Deletes a Publisher from the database
+      description: The Publisher to delete. Email is case insensitive. This endpoint deletes the Publisher from the Registry database and calls the corresponding stored procedure in the Publisher database.
+      operationId: routes.rt_api.delete_publisher
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Publisher
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+  /publishers/{email}/departments:
+    get:
+      summary: Gets the departments the Publisher has access to
+      description: Gets the Departments the Publisher has access to. This doesn't include all Departments when the Publisher is an admin.
+      operationId: routes.rt_api.get_publisher_departments
+      parameters:
+        - name: email
+          in: path
+          required: true
+          schema:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The English department acronyms the Publisher has access to
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["NRCan", "IAAC"]
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Publishers
+
+  /departments:
+    get:
+      summary: Lists the Departments
+      description: Lists the Departments in the system
+      operationId: routes.rt_api.get_departments
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DepartmentListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Departments
+
+    put:
+      summary: Adds a new Department
+      description: Adds a new Department
+      operationId: routes.rt_api.put_departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentAdd'
+        description: |-
+          Json Body to create a record.
+          The following properties must be set
+            - name_en, the English full name
+            - name_fr, the French full name
+            - tbs_acron_en, the English acronym which serves as the key
+            - tbs_acron_fr, the French acronym
+            - default_qgis_server_id, the server id attached by default
+            - default_download_id, the download id attached by default
+            - qgis_data_store_root_subpath, the data store root path
+            - download_root_subpath, the download root path
+            - publishers, the list of publisher emails to assign the department to
+            - servers, the list of server ids to assign the department to
+            - downloads, the list of download ids to assign the department to
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Department
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Departments
+
+  /departments/{dept_acrn_eng}:
+    get:
+      summary: Gets a single Department information
+      description: Gets a specific Department information
+      operationId: routes.rt_api.get_department
+      parameters:
+        - name: dept_acrn_eng
+          in: path
+          required: true
+          schema:
+            type: string
+            example: NRCan
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DepartmentResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Departments
+
+    patch:
+      summary: Updates a Department
+      description: The Department to update.
+      operationId: routes.rt_api.patch_department
+      parameters:
+        - name: dept_acrn_eng
+          in: path
+          required: true
+          schema:
+            type: string
+            example: NRCan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentPatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /name_en, the English full name
+            - /name_fr, the French full name
+            - /tbs_acron_en, the English acronym which serves as the key
+            - /tbs_acron_fr, the French acronym
+            - /default_qgis_server_id, the server id attached by default
+            - /default_download_id, the download id attached by default
+            - /qgis_data_store_root_subpath, the data store root path
+            - /download_root_subpath, the download root path
+            - /publishers, the list of publisher emails to assign the department to
+            - /servers, the list of server ids to assign the department to
+            - /downloads, the list of download ids to assign the department to
+          Note, be mindful when editing tbs_dept_acrn_en as this is the key
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Department
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Departments
+
+    delete:
+      summary: Deletes a Department
+      description: Deletes a Department
+      operationId: routes.rt_api.delete_department
+      parameters:
+      - name: dept_acrn_eng
+        in: path
+        description: Department id to delete
+        required: true
+        schema:
+          type: string
+          example: NRCan
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Department
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Departments
+
+  /departments/{dept_acrn_eng}/publishers:
+    get:
+      summary: Gets the Publishers the Department is linked to
+      description: Gets the Publishers the Department is linked to. This doesn't include the Publishers that are admins.
+      operationId: routes.rt_api.get_department_publishers
+      parameters:
+        - name: dept_acrn_eng
+          in: path
+          required: true
+          schema:
+            type: string
+            example: NRCan
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          description: The publisher emails linked to the department
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["john.smith@nrcan-rncan.gc.ca", "john.smith.2@nrcan-rncan.gc.ca"]
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Departments
+
+  /servers:
+    get:
+      summary: Lists the Server Infos
+      description: Gets a list of Server Info
+      operationId: routes.rt_api.get_servers
+      parameters:
+        - name: publisher
+          in: query
+          schema:
+            type: string
+            example: "john.smith@nrcan-rncan.gc.ca"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/ServerInfoListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Server Infos
+    put:
+      summary: Adds a new Server Info
+      description: Adds a new Server Info
+      operationId: routes.rt_api.put_servers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServerInfoAdd'
+        description: |-
+          Json Body to create a record.
+          The following properties must be set
+            - server_id, the server id which serves as the key
+            - admin_server_url, the admin server url
+            - online_resource_root_qgs_en, the QGIS online resource root for English
+            - online_resource_root_qgs_fr, the QGIS online resource root for French
+            - qgis_data_store_root_path, the QGIS data store root path
+            - admin_username, the admin username
+            - departments, the list of department acronyms to attach the server to
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Server Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Server Infos
+
+  /servers/{server_id}:
+    get:
+      summary: Gets a single Server Info
+      description: Gets a specific Server Info
+      operationId: routes.rt_api.get_server
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "DDR_QGS1"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/ServerInfoResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Server Infos
+
+    patch:
+      summary: Updates a Server Info
+      description: The Server Info to update.
+      operationId: routes.rt_api.patch_server
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "DDR_QGS1"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServerInfoPatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /admin_server_url, the admin server url
+            - /online_resource_root_qgs_en, the QGIS online resource root for English
+            - /online_resource_root_qgs_fr, the QGIS online resource root for French
+            - /qgis_data_store_root_path, the QGIS data store root path
+            - /admin_username, the admin username
+            - /departments, the list of department acronyms to attach the server to
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Server Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Server Infos
+
+    delete:
+      summary: Deletes a Server Info
+      description: Deletes a Server Info
+      operationId: routes.rt_api.delete_server
+      parameters:
+      - name: server_id
+        in: path
+        description: Server Info id to delete
+        required: true
+        schema:
+          type: string
+          example: "DDR_QGS1"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Server Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Server Infos
+
+  /downloads:
+    get:
+      summary: Lists the Download Infos
+      description: Gets a list of Download Info
+      operationId: routes.rt_api.get_downloads
+      parameters:
+        - name: publisher
+          in: query
+          schema:
+            type: string
+            example: "john.smith@nrcan-rncan.gc.ca"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DownloadInfoListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Download Infos
+    put:
+      summary: Adds a new Download Info
+      description: Adds a new Download Info
+      operationId: routes.rt_api.put_downloads
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadInfoAdd'
+        description: |-
+          Json Body to create a record.
+          The following properties must be set
+          - download_root_path, the download root path
+          - online_resource_root_download_en, the online resource root for English
+          - online_resource_root_download_fr, the online resource root for French
+          - owner_username, the owner username of the download info
+          - departments, the list of English department acronyms to attach the download to
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Download Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Download Infos
+
+  /downloads/{download_id}:
+    get:
+      summary: Gets a single Download Info
+      description: Gets a specific Download Info
+      operationId: routes.rt_api.get_download
+      parameters:
+        - name: download_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "DDR_DOWNLOAD1"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DownloadInfoResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Download Infos
+
+    patch:
+      summary: Updates a Download Info
+      description: The Download Info to update.
+      operationId: routes.rt_api.patch_download
+      parameters:
+        - name: download_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "DDR_DOWNLOAD1"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownloadInfoPatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /download_root_path
+            - /online_resource_root_download_en
+            - /online_resource_root_download_fr
+            - /owner_username
+            - /departments (list of English department acronyms)
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Download Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Download Infos
+
+    delete:
+      summary: Deletes a Download Info
+      description: Deletes a Download Info
+      operationId: routes.rt_api.delete_download
+      parameters:
+      - name: download_id
+        in: path
+        description: Download Info id to delete
+        required: true
+        schema:
+          type: string
+          example: "DDR_DOWNLOAD1"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Download Info
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Download Infos
+
+  /map_services:
+    get:
+      summary: Lists the Map Services
+      description: Gets a list of Map Services
+      operationId: routes.rt_api.get_map_services
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/MapServiceListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Map Services
+    put:
+      summary: Adds a new Map Service
+      description: Adds a new Map Service
+      operationId: routes.rt_api.put_map_services
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapServiceAdd'
+        description: |-
+          Json Patch Body to create a record.
+          The following properties must be set
+            - dataset_id, the dataset id
+            - qgis_server_id, the QGIS server id
+            - qgis_project_filename, the Project filename
+            - service_data_path, the Service data path
+            - service_language, the Service language
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Map Service
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Map Services
+
+  /map_services/dataset/{dataset_id}:
+    get:
+      summary: Gets the map services based on a given dataset id
+      description: Gets the map services based on a given dataset id
+      operationId: routes.rt_api.get_map_services_by_dataset
+      parameters:
+        - name: dataset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: e1a388f2-5318-4077-9482-d836b5f7c349
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/MapServiceListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Map Services
+
+  /map_services/{service_folder}/{service_name}:
+    get:
+      summary: Gets a single Map Service
+      description: Gets a specific Map Service
+      operationId: routes.rt_api.get_map_service
+      parameters:
+        - name: service_folder
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "nrcan"
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "national_parks_boundaries_en"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/MapServiceResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Map Services
+
+    patch:
+      summary: Updates a Map Service
+      description: The Map Service to update.
+      operationId: routes.rt_api.patch_map_service
+      parameters:
+        - name: service_folder
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "nrcan"
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "national_parks_boundaries_en"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MapServicePatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /dataset_id, the dataset id
+            - /qgis_server_id, the QGIS server id
+            - /qgis_project_filename, the Project filename
+            - /service_data_path, the Service data path
+            - /service_language, the Service language
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Map Service
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Map Services
+
+    delete:
+      summary: Deletes a Map Service
+      description: Deletes a Map Service
+      operationId: routes.rt_api.delete_map_service
+      parameters:
+        - name: service_folder
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "nrcan"
+        - name: service_name
+          in: path
+          description: Map Service id to delete
+          required: true
+          schema:
+            type: string
+            example: "national_parks_boundaries_en"
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Map Service
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Map Services
+
+  /datasets:
+    get:
+      summary: Lists the Datasets
+      description: Gets a list of Datasets
+      operationId: routes.rt_api.get_datasets
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DatasetListResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Datasets
+    put:
+      summary: Adds a new Dataset
+      description: Adds a new Dataset
+      operationId: routes.rt_api.put_datasets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetAdd'
+        description: |-
+          Json Patch Body to create a record.
+          The following properties must be set
+            - department_id, the attached department id
+            - download_id, the attached download id
+            - metadata_id, the metadata id this dataset represents which serves as a key
+            - download_folder_path, the download folder path
+            - thumbnail_image_file, the thumbnail image file
+            - core_subject_term, the core subject term
+            - download_folder_name, the download folder name
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully created the Dataset
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Datasets
+
+  /datasets/dataset/{dataset_id}:
+    get:
+      summary: Gets the dataset based on a given dataset id
+      description: Gets the dataset based on a given dataset id
+      operationId: routes.rt_api.get_dataset_by_id
+      parameters:
+        - name: dataset_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: e1a388f2-5318-4077-9482-d836b5f7c349
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DatasetResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Datasets
+
+  /datasets/{metadata_id}:
+    get:
+      summary: Gets a single Dataset
+      description: Gets a specific Dataset
+      operationId: routes.rt_api.get_dataset
+      parameters:
+        - name: metadata_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 64552095-ad19-4392-af08-a6d9eccf609e
+      security:
+        - BearerAuth: [ ]
+      responses:
+        200:
+          $ref: '#/components/responses/DatasetResponse'
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+        - Datasets
+
+    patch:
+      summary: Updates a Dataset
+      description: The Dataset to update.
+      operationId: routes.rt_api.patch_dataset
+      parameters:
+        - name: metadata_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: 64552095-ad19-4392-af08-a6d9eccf609e
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatasetPatch'
+        description: |-
+          Json Patch Body to update a record.
+          The following 'path' properties can be sent
+            - /department_id, the attached department id
+            - /download_id, the attached download id
+            - /metadata_id, the metadata id this dataset represents which serves as a key
+            - /download_folder_path, the download folder path
+            - /thumbnail_image_file, the thumbnail image file
+            - /core_subject_term, the core subject term
+            - /download_folder_name, the download folder name
+            Note, be mindful when editing metadata_id as this is the key
+        required: true
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully updated the Dataset
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        403:
+          $ref: '#/components/responses/UnauthorizedInvalidScopeError'
+        404:
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Datasets
+
+    delete:
+      summary: Deletes a Dataset
+      description: Deletes a Dataset
+      operationId: routes.rt_api.delete_dataset
+      parameters:
+      - name: metadata_id
+        in: path
+        description: Metadata id associated with the dataset to delete
+        required: true
+        schema:
+          type: string
+          example: 64552095-ad19-4392-af08-a6d9eccf609e
+      security:
+        - BearerAuth: [ ]
+      responses:
+        204:
+          description: Successfully deleted the Dataset
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
+        default:
+          $ref: '#/components/responses/InternalError'
+      tags:
+      - Datasets
+
+
+
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: flask_jwt_extended.decode_token
+
+  parameters:
+    f:
+      name: f
+      description: The optional f parameter indicates the output format which the
+        server shall provide as part of the response document. The default format
+        is GeoJSON.
+      explode: false
+      in: query
+      required: false
+      schema:
+        default: json
+        enum:
+        - json
+        - html
+        - jsonld
+        type: string
+      style: form
+    lang:
+      name: lang
+      description: The optional lang parameter instructs the server return a response
+        in a certain language, if supported. If the language is not among the available
+        values, the Accept-Language header language will be used if it is supported.
+        If the header is missing, the default server language is used. Note that providers
+        may only support a single language (or often no language at all), that can
+        be different from the server language. Language strings can be written in
+        a complex (e.g. "fr-CA,fr;q=0.9,en-US;q=0.8,en;q=0.7"), simple (e.g. "de")
+        or locale-like (e.g. "de-CH" or "fr_BE") fashion.
+      in: query
+      required: false
+      schema:
+        default: en-US
+        enum:
+        - en-US
+        - fr-CA
+        type: string
+
+  responses:
+
+    AccessToken:
+      description: An access token and a refresh token for a given User
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AccessTokenResponse'
+
+    PublisherResponse:
+      description: A Publisher
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Publisher'
+
+    PublisherListResponse:
+      description: List of Publishers
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublisherList'
+
+    DepartmentResponse:
+      description: A Department
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Department'
+
+    DepartmentListResponse:
+      description: List of Departments
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DepartmentList'
+
+    ServerInfoResponse:
+      description: A Server Info
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ServerInfo'
+
+    ServerInfoListResponse:
+      description: List of Server Infos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ServerInfoList'
+
+    DownloadInfoResponse:
+      description: A Download Info
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DownloadInfo'
+
+    DownloadInfoListResponse:
+      description: List of Download Infos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DownloadInfoList'
+
+    MapServiceResponse:
+      description: A Map Service
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MapService'
+
+    MapServiceListResponse:
+      description: List of Map Services
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MapServiceList'
+
+    DatasetResponse:
+      description: A Dataset
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Dataset'
+
+    DatasetListResponse:
+      description: List of Datasets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DatasetList'
+
+    InvalidCredentials:
+      description: Invalid credentials provided.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    BadRequest:
+      description: Bad request received on server
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+            example: "Bearer"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UnauthorizedInvalidScopeError:
+      description: Access token does not have the required scope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    UserNotFound:
+      description: User with given username not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: The requested URI was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalError:
+      description: Internal error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServerError:
+      description: A server error occurred.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/exception'
+        text/html:
+          schema:
+            type: string
+
+
+  schemas:
+    UserLogin:
+      type: object
+      properties:
+        username:
+          type: string
+          example: alexandre-roy
+        password:
+          type: string
+          example: PASSWORD
+
+    Publisher:
+      type: object
+      properties:
+        email:
+          type: string
+          example: john.smith@nrcan-rncan.gc.ca
+        name:
+          type: string
+          example: John Smith
+        ad_user_name:
+          type: string
+          example: john-smith
+        admin_flag:
+          type: boolean
+          example: False
+
+    PublisherList:
+      type: array
+      items:
+        type: object
+        properties:
+          ad_user_name:
+            type: string
+            example: alexandre-roy
+          admin:
+            type: boolean
+            example: true
+          email:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+          name:
+            type: string
+            example: Alex Roy
+
+    PublisherAdd:
+      type: object
+      properties:
+        email:
+          type: string
+          example: john.smith@nrcan-rncan.gc.ca
+        name:
+          type: string
+          example: John Smith
+        ad_user_name:
+          type: string
+          example: john-smith
+        admin_flag:
+          type: boolean
+          example: False
+        departments:
+          type: array
+          items:
+            type: string
+          example: ["NRCan", "IAAC"]
+
+    PublisherPatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /name
+          value:
+            example: new_name
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: string
+        default_download_id:
+          type: string
+          example: DDR_DOWNLOAD1
+        default_qgis_server_id:
+          type: string
+          example: DDR_QGS1
+        download_root_subpath:
+          type: string
+          example: download\root\path\
+        name_en:
+          type: string
+          example: Natural Resources Canada
+        name_fr:
+          type: string
+          example: Ressources Naturelles Canada
+        qgis_data_store_root_subpath:
+          type: string
+          example: root\path\
+        tbs_dept_acrn_en:
+          type: string
+          example: NRCan
+        tbs_dept_acrn_fr:
+          type: string
+          example: RNCan
+
+    DepartmentList:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          default_download_id:
+            type: string
+            example: DDR_DOWNLOAD1
+          default_qgis_server_id:
+            type: string
+            example: DDR_QGS1
+          download_root_subpath:
+            type: string
+            example: download\root\path\
+          name_en:
+            type: string
+            example: Natural Resources Canada
+          name_fr:
+            type: string
+            example: Ressources Naturelles Canada
+          qgis_data_store_root_subpath:
+            type: string
+            example: root\path\
+          tbs_dept_acrn_en:
+            type: string
+            example: NRCan
+          tbs_dept_acrn_fr:
+            type: string
+            example: RNCan
+
+    DepartmentAdd:
+      type: object
+      properties:
+        name_en:
+          type: string
+          example: Natural Resources Canada
+        name_fr:
+          type: string
+          example: Ressources Naturelles Canada
+        tbs_acron_en:
+          type: string
+          example: NRCan
+        tbs_acron_fr:
+          type: string
+          example: RNCan
+        default_qgis_server_id:
+          type: string
+          example: DDR_QGS1
+        default_download_id:
+          type: string
+          example: DDR_DOWNLOAD1
+        qgis_data_store_root_subpath:
+          type: string
+          example: root\path\
+        download_root_subpath:
+          type: string
+          example: download\root\path\
+        publishers:
+          type: array
+          items:
+            type: string
+            example: john.smith@nrcan-rncan.gc.ca
+        servers:
+          type: array
+          items:
+            type: string
+            example: DDR_QGS1
+        downloads:
+          type: array
+          items:
+            type: string
+            example: DDR_DOWNLOAD1
+
+    DepartmentPatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /name_en
+          value:
+            example: new_name_en
+
+    ServerInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "server_id"
+        admin_server_url:
+          type: string
+          example: "admin_server_url"
+        online_resource_root_qgs_en:
+          type: string
+          example: "online_resource_root_qgs_en"
+        online_resource_root_qgs_fr:
+          type: string
+          example: "online_resource_root_qgs_fr"
+        qgis_data_store_root_path:
+          type: string
+          example: "qgis_data_store_root_path"
+        admin_username:
+          type: string
+          example: "admin_username"
+
+    ServerInfoList:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "server_id"
+          admin_server_url:
+            type: string
+            example: "admin_server_url"
+          online_resource_root_qgs_en:
+            type: string
+            example: "online_resource_root_qgs_en"
+          online_resource_root_qgs_fr:
+            type: string
+            example: "online_resource_root_qgs_fr"
+          qgis_data_store_root_path:
+            type: string
+            example: "qgis_data_store_root_path"
+          admin_username:
+            type: string
+            example: "admin_username"
+
+    ServerInfoAdd:
+      type: object
+      properties:
+        server_id:
+          type: string
+          example: "server_id"
+        admin_server_url:
+          type: string
+          example: "admin_server_url"
+        online_resource_root_qgs_en:
+          type: string
+          example: "online_resource_root_qgs_en"
+        online_resource_root_qgs_fr:
+          type: string
+          example: "online_resource_root_qgs_fr"
+        qgis_data_store_root_path:
+          type: string
+          example: "qgis_data_store_root_path"
+        admin_username:
+          type: string
+          example: "admin_username"
+        departments:
+          type: array
+          items:
+            type: string
+          example: ["NRCan"]
+
+    ServerInfoPatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /admin_server_url
+          value:
+            example: admin_server_url
+
+    DownloadInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "download_id"
+        download_root_path:
+          type: string
+          example: "download_root_path"
+        online_resource_root_download_en:
+          type: string
+          example: "online_resource_root_download_en"
+        online_resource_root_download_fr:
+          type: string
+          example: "online_resource_root_download_fr"
+        owner_username:
+          type: string
+          example: "owner_username"
+
+    DownloadInfoList:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "download_id"
+          download_root_path:
+            type: string
+            example: "download_root_path"
+          online_resource_root_download_en:
+            type: string
+            example: "online_resource_root_download_en"
+          online_resource_root_download_fr:
+            type: string
+            example: "online_resource_root_download_fr"
+          owner_username:
+            type: string
+            example: "owner_username"
+
+    DownloadInfoAdd:
+      type: object
+      properties:
+        download_id:
+          type: string
+          example: "download_id"
+        download_root_path:
+          type: string
+          example: "download_root_path"
+        online_resource_root_download_en:
+          type: string
+          example: "online_resource_root_download_en"
+        online_resource_root_download_fr:
+          type: string
+          example: "online_resource_root_download_fr"
+        owner_username:
+          type: string
+          example: "owner_username"
+
+    DownloadInfoPatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /download_root_path
+          value:
+            example: download_root_path
+
+    MapService:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "map_service_id"
+        dataset_id:
+          type: string
+          example: "dataset_id"
+        qgis_server_id:
+          type: string
+          example: "qgis_server_id"
+        service_name:
+          type: string
+          example: "service_name"
+        service_folder:
+          type: string
+          example: "service_folder"
+        service_data_path:
+          type: string
+          example: "service_data_path"
+        service_language:
+          type: string
+          example: "service_language"
+        qgis_project_filename:
+          type: string
+          example: "qgis_project_filename"
+
+    MapServiceList:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+            example: "map_service_id"
+          dataset_id:
+            type: string
+            example: "dataset_id"
+          qgis_server_id:
+            type: string
+            example: "qgis_server_id"
+          service_name:
+            type: string
+            example: "service_name"
+          service_folder:
+            type: string
+            example: "service_folder"
+          service_data_path:
+            type: string
+            example: "service_data_path"
+          service_language:
+            type: string
+            example: "service_language"
+          qgis_project_filename:
+            type: string
+            example: "qgis_project_filename"
+
+    MapServiceAdd:
+      type: object
+      properties:
+        dataset_id:
+          type: string
+          example: "dataset_id"
+        qgis_server_id:
+          type: string
+          example: "qgis_server_id"
+        service_name:
+          type: string
+          example: "service_name"
+        service_folder:
+          type: string
+          example: "service_folder"
+        service_data_path:
+          type: string
+          example: "service_data_path"
+        service_language:
+          type: string
+          example: "service_language"
+        qgis_project_filename:
+          type: string
+          example: "qgis_project_filename"
+
+    MapServicePatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /dataset_id
+          value:
+            example: dataset_id
+
+    Dataset:
+      type: object
+      properties:
+        department_acrn_en:
+          type: string
+          example: "NRCan"
+        download_id:
+          type: string
+          nullable: true
+          example: DDR_DOWNLOAD1
+        metadata_id:
+          type: string
+          example: 64552095-ad19-4392-af08-a6d9eccf609e
+        download_folder_path:
+          type: string
+          nullable: true
+          example: "download_folder_path"
+        thumbnail_image_file:
+          type: string
+          nullable: true
+          example: "thumbnail_image_file"
+        core_subject_term:
+          type: string
+          nullable: true
+          example: "core_subject_term"
+        download_folder_name:
+          type: string
+          nullable: true
+          example: "download_folder_name"
+
+    DatasetList:
+      type: array
+      items:
+        type: object
+        properties:
+          department_acrn_en:
+            type: string
+            example: "NRCan"
+          download_id:
+            type: string
+            nullable: true
+            example: DDR_DOWNLOAD1
+          metadata_id:
+            type: string
+            example: 64552095-ad19-4392-af08-a6d9eccf609e
+          download_folder_path:
+            type: string
+            nullable: true
+            example: "download_folder_path"
+          thumbnail_image_file:
+            type: string
+            nullable: true
+            example: "thumbnail_image_file"
+          core_subject_term:
+            type: string
+            nullable: true
+            example: "core_subject_term"
+          download_folder_name:
+            type: string
+            nullable: true
+            example: "download_folder_name"
+
+    DatasetAdd:
+      type: object
+      properties:
+        department_acrn_en:
+          type: string
+          example: "NRCan"
+        download_id:
+          type: string
+          example: DDR_DOWNLOAD1
+        metadata_id:
+          type: string
+          example: 64552095-ad19-4392-af08-a6d9eccf609e
+        download_folder_path:
+          type: string
+          example: "download_folder_path"
+        thumbnail_image_file:
+          type: string
+          example: "thumbnail_image_file"
+        core_subject_term:
+          type: string
+          example: "core_subject_term"
+        download_folder_name:
+          type: string
+          example: "download_folder_name"
+
+    DatasetPatch:
+      type: array
+      items:
+        type: object
+        properties:
+          op:
+            type: string
+            example: update
+          path:
+            type: string
+            example: /download_folder_path
+          value:
+            example: some_path/some_path/
+
+    Language:
+      type: object
+      properties:
+        en:
+          type: string
+          example: "Text in english"
+        fr:
+          type: string
+          example: "Texte en français"
+
+    RefreshToken:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+
+    AccessTokenResponse:
+      required:
+        - access_token
+        - expires_in
+        - refresh_token
+        - refresh_expires_in
+        - token_type
+      properties:
+        access_token:
+          type: string
+          description: The access JWT token for the User
+        expires_in:
+          type: integer
+          description: The number of seconds until the token expires
+        refresh_token:
+          type: string
+          description: The refresh JWT token for the User
+        refresh_expires_in:
+          type: integer
+          description: The number of seconds until the refresh token expires
+        token_type:
+          type: string
+          description: The token type, always Bearer
+          example: Bearer
+
+    ErrorResponse:
+      required:
+        - status
+        - title
+        - detail
+      properties:
+        status:
+          type: integer
+          description: Error type (401, 402, 403, 500, etc).
+        title:
+          type: string
+          description: Error title
+        detail:
+          type: string
+          description: Error description
+        detail_fr:
+          type: string
+          description: Error description in French
+        #type:
+        #  type: string
+        #  description: Error type
+
+    exception:
+      type: object
+      description: |-
+        Information about the exception: an error code plus an optional description.
+      required:
+        - code
+      properties:
+        code:
+          type: string
+        description:
+          type: string
