@@ -420,8 +420,7 @@ class Utils:
         """Read the DDR departments from the service end point"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/ddr_departments"
-        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_departments"
+        url += "/api/ddr_registry_departments"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -437,8 +436,7 @@ class Utils:
         """Read the User Email from the service end point"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/ddr_my_email"
-        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_my_email"
+        url += "/api/ddr_registry_my_publisher_email"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -454,8 +452,7 @@ class Utils:
         """Read the Downloads from the service end point"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/ddr_downloads"
-        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_downloads"
+        url += "/api/ddr_registry_downloads"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
@@ -471,8 +468,7 @@ class Utils:
         """Read the Servers from the service end point"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/ddr_servers"
-        #url = "https://qgis.ddr-stage.services.geo.ca/api/ddr_servers"
+        url += "/api/ddr_registry_servers"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         try:
