@@ -1,22 +1,21 @@
-name: Run mock API server
-on:
-  push:
-    branches:
-      - main
+name: Test ddr_plugin
+on: [push]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js
-        uses: actions/setup-node@v2
-      - name: NPM install, build and test
-        run: |
-          npm ci
-          npm run build
-#         If mockoon-cli is not a devDependency:
-#         npm install -D mockoon-cli
-          npx mockoon-cli start --data https://domain.com/data.json --port 3000
-          npm run test
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Mockoon
+      run: npm install -g mockoon
+
+    - name: Start Mockoon server
+      run: mockoon-cli start -d ./path/to/your/mockoon/files
