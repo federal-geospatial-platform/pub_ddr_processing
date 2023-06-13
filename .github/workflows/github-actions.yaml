@@ -15,7 +15,7 @@ jobs:
         node-version: '14'
 
     - name: Install Mockoon
-      run: npm install -g mockoon
+      run: npm install -g @mockoon/cli
 
     - name: Start Mockoon server
       run: mockoon-cli start -d ./path/to/your/mockoon/files
