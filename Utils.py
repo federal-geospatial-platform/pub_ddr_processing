@@ -124,7 +124,7 @@ class DdrInfo(object):
     __short_name_fr = None
     __json_theme = []
     __json_department = []
-    __json_email = []
+    __email = None
     __json_downloads = None
     __json_servers = None
     __environment = None
@@ -193,15 +193,21 @@ class DdrInfo(object):
 
     @staticmethod
     def add_email(json_email):
-        """Add the email associated to the login"""
+        """Add the email associated to the login
+           Verify the validity of the JSON structure"""
 
-        DdrInfo.__json_email = json_email
+        # Verify the structure/content of the JSON document
+        try:
+            DdrInfo.__email = json_email["email"]
+        except KeyError:
+            # Bad structure raise an exception and crash
+            raise UserMessageException("Invalid structure of the JSON theme response from the DDR request")
 
     @staticmethod
     def get_email():
         """Get the login associated to the login"""
 
-        return DdrInfo.__json_email
+        return DdrInfo.__email
 
     @staticmethod
     def add_departments(json_department):

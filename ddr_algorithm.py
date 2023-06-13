@@ -360,7 +360,7 @@ class DdrPublish(QgsProcessingAlgorithm):
         """"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/processes"
+        url += "/api/publish"
         #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
@@ -482,7 +482,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
         """"""
 
         url = DdrInfo.get_http_environment()
-        url += "/api/processes"
+        url += "/api/update"
         #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
@@ -721,7 +721,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
         """Unpublish a QGIS project file """
 
         url = DdrInfo.get_http_environment()
-        url += "/api/processes"
+        url += "/api/unpublish"
         #url = 'https://qgis.ddr-stage.services.geo.ca/api/processes'
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
