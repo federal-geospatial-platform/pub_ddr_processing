@@ -12,10 +12,10 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
+        node-version: 'latest'
 
     - name: Install Mockoon
       run: npm install -g @mockoon/cli
 
     - name: Start Mockoon server
-      run: mockoon-cli start -data ../../mockoon.json
+      run: mockoon-cli start --data ../../mockoon.json
