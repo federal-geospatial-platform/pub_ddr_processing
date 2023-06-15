@@ -17,5 +17,8 @@ jobs:
     - name: Install Mockoon
       run: npm install -g @mockoon/cli
 
+    - name: List files
+      run: ls -l
+    
     - name: Start Mockoon server
-      run: mockoon-cli start --data ../../mockoon.json
+      run: mockoon-cli start --data ./mockoon.json
