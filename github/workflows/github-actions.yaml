@@ -16,9 +16,8 @@ jobs:
           node-version: "14.x"
       - name: NPM install, build and test
         run: |
-          npm ci
-          npm run build
-#         If mockoon-cli is not a devDependency:
-#         npm install -D mockoon-cli 
-          npx mockoon-cli start ../mockoon.json --port 3001
+          npm ci 
+          npm run build 
+          # If mockoon-cli is not a devDependency:
+          npm install -D mockoon-cli
           npm run test
