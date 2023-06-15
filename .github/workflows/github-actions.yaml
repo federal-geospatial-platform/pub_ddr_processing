@@ -4,6 +4,11 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        docker_tags: [latest]
+        # docker_tags: [release-3_16, release-3_18, latest]
 
     steps:
     - name: Checkout repository
