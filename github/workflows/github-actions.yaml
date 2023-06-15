@@ -20,4 +20,4 @@ jobs:
           npm run build 
           # If mockoon-cli is not a devDependency:
           npm install -D mockoon-cli
-          npm run test
+          npm run test1
