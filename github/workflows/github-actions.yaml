@@ -20,5 +20,5 @@ jobs:
           npm run build
 #         If mockoon-cli is not a devDependency:
 #         npm install -D mockoon-cli
-          npx mockoon-cli start --port 3000
+          npx mockoon-cli start ../mockoon.json --port 3000
           npm run test
