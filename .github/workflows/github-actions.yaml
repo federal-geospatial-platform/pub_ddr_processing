@@ -22,3 +22,9 @@ jobs:
     
     - name: Start Mockoon server
       run: mockoon-cli start --data ./mockoon.json
+      
+    - name: Install ArgoCD CLI
+      id: install_argocd
+      shell: bash
+      run: |
+          curl -X 'POST' 'https:localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
