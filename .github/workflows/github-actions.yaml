@@ -3,7 +3,7 @@ on: [push]
 
 env:
   # plugin name/directory where the code for the plugin is stored 
-  PLUGIN_NAME: CDTK
+  PLUGIN_NAME: pub_ddr_processing
   # python notation to test running inside plugin
   #  TESTS_RUN_FUNCTION: test.test_suite.test_package
   # Docker settings
