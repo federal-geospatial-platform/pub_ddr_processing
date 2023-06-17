@@ -51,9 +51,10 @@ jobs:
     - name: Docker set up QGIS
       run: |
         docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
-        docker exec qgis-testing-environment sh -c "ls -l tests_directory"
-        docker exec qgis-testing-environment sh -c "cd tests_directory"
+        docker exec qgis-testing-environment sh -c "pwd"
         docker exec qgis-testing-environment sh -c "ls -l"
+        #docker exec qgis-testing-environment sh -c "cd tests_directory"
+        #docker exec qgis-testing-environment sh -c "ls -l"
         # docker exec qgis-testing-environment sh -c "cd pub_ddr_processing"
         # docker exec qgis-testing-environment sh -c "ls -l"
         docker exec qgis-testing-environment sh -c "cd .."
