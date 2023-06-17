@@ -54,7 +54,11 @@ jobs:
         docker exec qgis-testing-environment sh -c "pwd"
         docker exec qgis-testing-environment sh -c "cd tests_directory/pub_ddr_processing"
         docker exec qgis-testing-environment sh -c "ls -l"
+        
+        docker exec qgis-testing-environment sh -c "set +e"
         docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
+        docker exec qgis-testing-environment sh -c "echo "exitcode=$?" >> $GITHUB_OUTPUT"
+        
         #docker exec qgis-testing-environment sh -c "ls -l tests_directory"
         #docker exec qgis-testing-environment sh -c "cd tests_directory"
         #docker exec qgis-testing-environment sh -c "pwd"
