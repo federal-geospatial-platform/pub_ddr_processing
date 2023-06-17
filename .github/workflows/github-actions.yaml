@@ -52,7 +52,7 @@ jobs:
       run: |
         docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
         docker exec qgis-testing-environment sh -c "qgis_process list"
-        # docker exec qgis-testing-environment sh -c "qgis_process run  /pub_ddr_processing/patch_mockoon_user.py"
+        docker exec qgis-testing-environment sh -c "qgis_process run  /pub_ddr_processing/patch_mockoon_user.py"
         # docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
         # docker exec qgis-testing-environment sh -c "ln -s /tests_directory/$PLUGIN_NAME /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
         # docker exec qgis-testing-environment sh -c "qgis_process run  patch_mockoon_user.py"
