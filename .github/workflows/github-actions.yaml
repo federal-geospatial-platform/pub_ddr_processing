@@ -50,7 +50,7 @@ jobs:
         
     - name: Docker set up QGIS
       run: |
-        docker exec qgis-testing-environment sh -c "ls -l pub_ddr_processing"
+        docker exec qgis-testing-environment sh -c "ls -l"
          docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing/patch_mockoon_user.py"
         docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
         docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
