@@ -1,3 +1,4 @@
+0/0
 from qgis.core import  QgsAuthMethodConfig, QgsApplication
 cfg = QgsAuthMethodConfig()
 cfg.setMethod("Basic")
