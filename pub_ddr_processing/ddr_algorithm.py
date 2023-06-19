@@ -829,22 +829,12 @@ class DdrLogin(QgsProcessingAlgorithm):
         cfg.setConfig("password", "a123456")
         Utils.push_info(feedback, f"INFO: isValid: {str(cfg.isValid())}")
         cfg.setId("p7h9tdd")
-        qgs_app = QgsApplication([], GUIenabled=False, platformName="desktop")
-        auth_manager = qgs_app.authManager()
+        qgs_app = QgsApplication.authManager()
         auth_manager.storeAuthenticationConfig(cfg, True)
         Utils.push_info(feedback, f"INFO: Config ID: {cfg.id()}")
-      
-        from qgis.core import  QgsAuthMethodConfig, QgsApplication
-        cfg = QgsAuthMethodConfig()
-        cfg.setMethod("Basic")
-        cfg.setName("mfrthn8")
-        cfg.setConfig("username", "mfrthn8")
-        cfg.setConfig("password", "a123456")
-        cfg.setId("p7h9tdd")
-        auth_manager = QgsApplication.authManager()
-        auth_manager.storeAuthenticationConfig(cfg)
-        cfg.id()
-   
+        lst_id = auth_manager.configIds()
+        Utils.push_info(feedback, f"INFO: LST Config IDs: {str(lst_id)}")
+         
         auth_method = self.parameterAsString(parameters, 'AUTHENTICATION', context)
         environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
