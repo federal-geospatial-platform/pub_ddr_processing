@@ -820,13 +820,23 @@ class DdrLogin(QgsProcessingAlgorithm):
         """Reads the different parameters in the form and stores the content in the data structure"""
 
 #        import web_pdb; web_pdb.set_trace()
-
+      
         from qgis.core import  QgsAuthMethodConfig, QgsApplication
+
+        managerAU  = QgsApplication.authManager()
+        namesAU = [name for name in managerAU.availableAuthMethodConfigs().keys()]
+        for nameAU in namesAU:
+            newAU = QgsAuthMethodConfig()
+            managerAU.loadAuthenticationConfig(nameAU, newAU, True)
+            cMap = newAU.configMap()
+            Utils.push_info(feedback, f"INFO: Grapped config: {str(cmap)}") print(cMap)
+      
         cfg = QgsAuthMethodConfig()
         cfg.setMethod("Basic")
         cfg.setName("mfrt4444hn8")
         cfg.setConfig("username", "mfrthn8")
         cfg.setConfig("password", "a123456")
+        cfg.setConfigMap(cMap)
         Utils.push_info(feedback, f"INFO: isValid: {str(cfg.isValid())}")
         cfg.setId("p7h9tdd")
         auth_manager = QgsApplication.authManager()
