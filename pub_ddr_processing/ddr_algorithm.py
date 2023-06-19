@@ -825,7 +825,7 @@ class DdrLogin(QgsProcessingAlgorithm):
 
         managerAU  = QgsApplication.authManager()
         file_name = managerAU.authDatabaseConfigTable()
-         Utils.push_info(feedback, f"INFO: Credentials DB: {file_name")
+        Utils.push_info(feedback, f"INFO: Credentials DB: {file_name}")
         namesAU = [name for name in managerAU.availableAuthMethodConfigs().keys()]
         for nameAU in namesAU:
             newAU = QgsAuthMethodConfig()
