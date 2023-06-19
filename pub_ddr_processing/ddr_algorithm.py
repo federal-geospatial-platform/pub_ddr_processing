@@ -862,6 +862,8 @@ class DdrLogin(QgsProcessingAlgorithm):
         auth_info = auth_cfg.configMap()
 
         try:
+             Utils.push_info(feedback, f"INFO: Juste avant: {environment}")
+             Utils.push_info(feedback, f"INFO: Juste avant: {str(auth_info)}")        
             username = auth_info['username']
             password = auth_info['password']
         except KeyError:
