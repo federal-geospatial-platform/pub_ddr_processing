@@ -830,7 +830,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         cfg.setId("p7h9tdd")
         auth_manager = QgsApplication.authManager()
         auth_manager.storeAuthenticationConfig(cfg, True)
-        cfg.id()
+        Utils.push_info(feedback, f"INFO: Config ID: {cfg.id()}")
       
         from qgis.core import  QgsAuthMethodConfig, QgsApplication
         cfg = QgsAuthMethodConfig()
@@ -862,8 +862,11 @@ class DdrLogin(QgsProcessingAlgorithm):
         auth_info = auth_cfg.configMap()
 
         try:
+          
+            Utils.push_info(feedback, f"INFO: Juste avant: {auth_method}")
             Utils.push_info(feedback, f"INFO: Juste avant: {environment}")
             Utils.push_info(feedback, f"INFO: Juste avant: {str(auth_info)}")        
+          
             username = auth_info['username']
             password = auth_info['password']
         except KeyError:
