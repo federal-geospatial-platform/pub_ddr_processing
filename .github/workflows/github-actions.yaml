@@ -50,6 +50,10 @@ jobs:
         
     - name: Docker set up QGIS
       run: |
+        
+        docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli"
+        docker exec qgis-testing-environment sh -c "mockoon-cli start --data ./mockoon.json"
+        
         docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
         docker exec qgis-testing-environment sh -c "pwd"
         docker exec qgis-testing-environment sh -c "cd tests_directory/pub_ddr_processing"
