@@ -829,7 +829,8 @@ class DdrLogin(QgsProcessingAlgorithm):
         cfg.setConfig("password", "a123456")
         Utils.push_info(feedback, f"INFO: isValid: {str(cfg.isValid())}")
         cfg.setId("p7h9tdd")
-        auth_manager = QgsApplication.authManager()
+        qgs_app = QgsApplication(GUIenabled=False)
+        auth_manager = qgs_app.authManager()
         auth_manager.storeAuthenticationConfig(cfg, True)
         Utils.push_info(feedback, f"INFO: Config ID: {cfg.id()}")
       
