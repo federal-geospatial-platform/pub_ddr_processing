@@ -830,10 +830,11 @@ class DdrLogin(QgsProcessingAlgorithm):
         Utils.push_info(feedback, f"INFO: isValid: {str(cfg.isValid())}")
         cfg.setId("p7h9tdd")
         auth_manager = QgsApplication.authManager()
-        auth_manager.storeAuthenticationConfig(cfg, True)
+        result_store = auth_manager.storeAuthenticationConfig(cfg, True)
         Utils.push_info(feedback, f"INFO: Config ID: {cfg.id()}")
         lst_id = auth_manager.configIds()
         Utils.push_info(feedback, f"INFO: LST Config IDs: {str(lst_id)}")
+        Utils.push_info(feedback, f"INFO: Result store: {str(result_store)}")
          
         auth_method = self.parameterAsString(parameters, 'AUTHENTICATION', context)
         environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
