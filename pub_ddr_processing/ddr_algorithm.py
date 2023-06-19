@@ -829,7 +829,7 @@ class DdrLogin(QgsProcessingAlgorithm):
             newAU = QgsAuthMethodConfig()
             managerAU.loadAuthenticationConfig(nameAU, newAU, True)
             cMap = newAU.configMap()
-        Utils.push_info(feedback, f"INFO: Grapped config: {str(cmap)}")
+        Utils.push_info(feedback, f"INFO: Grapped config: {str(cMap)}")
       
         cfg = QgsAuthMethodConfig()
         cfg.setMethod("Basic")
