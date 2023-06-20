@@ -1,1 +1,1098 @@
-{"openapi":"3.0.0","info":{"title":"Ddr plugin publication","version":"1.0.0"},"servers":[{"url":"http://localhost:3000/api"}],"paths":{"/login":{"post":{"description":"Generates a JWT for a given User","responses":{"200":{"description":"An access token and a refresh token for a given User","content":{"application/json":{}},"headers":{}},"400":{"description":"Bad request received on server","content":{"application/json":{}},"headers":{}},"401":{"description":"Invalid credentials provided.","content":{"application/json":{}},"headers":{}}}}},"/czs_themes":{"get":{"description":"Gets the Clip Zip Ship Themes","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/ddr_registry_departments":{"get":{"description":"Gets the Departments that the currently logged in User/Publisher has access to.","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/ddr_registry_my_publisher_email":{"get":{"description":"Gets the email of the logged in user according to their email in the DDR Registry.","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/ddr_registry_downloads":{"get":{"description":"Gets the Downloads that the currently logged in User/Publisher has access to.","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/ddr_registry_servers":{"get":{"description":"Gets the Servers that the currently logged in User/Publisher has access to.","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/validate":{"post":{"description":"Validates an input package","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/publish":{"put":{"description":"Loads the data and publishes the project file(s) in QGIS Server","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"204":{"description":"Successfully exported the data and published the project file(s) in QGIS Server","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/update":{"patch":{"description":"Updates the data and re-publishes the project file(s) in QGIS Server","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"204":{"description":"Successfully updated the data and re-published the project file(s) in QGIS Server","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}},"/unpublish":{"delete":{"description":"Deletes a service and its linked data from QGIS Server","responses":{"200":{"description":"Internal error","content":{"application/json":{}},"headers":{}},"204":{"description":"Successfully deleted the Service","content":{"application/json":{}},"headers":{}},"401":{"description":"Access token is missing or invalid","content":{"application/json":{}},"headers":{"WWW_Authenticate":{"schema":{"type":"string"},"example":""}}},"403":{"description":"Access token does not have the required scope","content":{"application/json":{}},"headers":{}}}}}}}
+{
+    "uuid": "0f42e230-d83a-4ec9-b5f0-950f5591344d",
+    "lastMigration": 27,
+    "name": "Ddr plugin publication",
+    "endpointPrefix": "api",
+    "latency": 0,
+    "port": 3000,
+    "hostname": "",
+    "folders": [],
+    "routes": [
+        {
+            "uuid": "f516b7fd-f95a-4633-aa44-5efc5aa60a99",
+            "type": "http",
+            "documentation": "Generates a JWT for a given User",
+            "method": "post",
+            "endpoint": "login",
+            "responses": [
+                {
+                    "uuid": "80139c16-cc99-4fd5-b815-8752f74596fc",
+                    "body": "{\n  \"access_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6dHJ1ZSwiaWF0IjoxNjg2NjAxNDM2LCJqdGkiOiIzZDc1YmYxNS1iZmI0LTQ3MTYtOGE2Ni1iNWVhNGM2M2M2OTQiLCJ0eXBlIjoiYWNjZXNzIiwic3ViIjoie1wiaWRcIjogXCJkYW5pZWwtcGlsb25cIiwgXCJyb2xlXCI6IDEwMCwgXCJ1c2VybmFtZVwiOiBcIkRhbmllbFwifSIsIm5iZiI6MTY4NjYwMTQzNiwiZXhwIjoxNjg2NjMwMjM2fQ.bOqH1KBO8d30TCt6-eRW82JySJsD16akUIKGEdqzhf4\",\n  \"expires_in\": 28800,\n  \"refresh_expires_in\": 86400,\n  \"refresh_token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTY4NjYwMTQzNiwianRpIjoiOGEwMGI4NzMtNDkyOS00ODk2LWI1YzgtZTFhYWQ1NzFmMzc4IiwidHlwZSI6InJlZnJlc2giLCJzdWIiOiJ7XCJpZFwiOiBcImRhbmllbC1waWxvblwiLCBcInJvbGVcIjogMTAwLCBcInVzZXJuYW1lXCI6IFwiRGFuaWVsXCJ9IiwibmJmIjoxNjg2NjAxNDM2LCJleHAiOjE2ODY2ODc4MzZ9.HUTMTX7LUVXqWFghLfXeyQk2fAU6PtSanfYYwVQYQyc\",\n  \"token_type\": \"Bearer\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "An access token and a refresh token for a given User",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "",
+                            "value": ""
+                        },
+                        {
+                            "key": "",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "1bf1e37f-2053-4587-b1c2-a83819ac2473",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 400,
+                    "label": "Bad request received on server",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "8d253c11-c21f-4301-99d1-c9a60deb5f68",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Invalid credentials provided.",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "6544a3d9-176c-412c-88c5-adcc1b827676",
+            "type": "http",
+            "documentation": "Gets the Clip Zip Ship Themes",
+            "method": "get",
+            "endpoint": "czs_themes",
+            "responses": [
+                {
+                    "uuid": "57b9b139-6d71-425b-83cd-35e36d06af57",
+                    "body": "[\r\n  {\r\n    \"theme_uuid\": \"a78c820c-9e31-4296-bf75-a94384c1b1c5\",\r\n    \"title\": {\r\n      \"en\": \"Agriculture, construction and land use\",\r\n      \"fr\": \"Agriculture, constructions et occupation du territoire\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"f0611e86-5863-4761-902e-e58baba0c110\",\r\n    \"title\": {\r\n      \"en\": \"Environment\",\r\n      \"fr\": \"Environnement\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"0f1c62fc-5325-483e-b2d9-fb98cfe397f5\",\r\n    \"title\": {\r\n      \"en\": \"Fauna, flora and biodiversity\",\r\n      \"fr\": \"Faune, flore et biodiversité\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"13244ca2-83b5-4ccc-bc18-689829cd5b94\",\r\n    \"title\": {\r\n      \"en\": \"Hydrography and hydrology\",\r\n      \"fr\": \"Hydrographie et hydrologie\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"9b1125c2-e280-4278-89c8-a497cf300f9e\",\r\n    \"title\": {\r\n      \"en\": \"Mining, energy and forestry\",\r\n      \"fr\": \"Mines, énergie et exploitation forestière\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"e7087e59-a57f-432b-81db-065f4d40e797\",\r\n    \"title\": {\r\n      \"en\": \"Science, technology and Earth observation\",\r\n      \"fr\": \"Sciences, technologies et observation de la Terre\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"9c9de3c4-e0dd-4c0d-b393-fce2147bf22f\",\r\n    \"title\": {\r\n      \"en\": \"Society\",\r\n      \"fr\": \"Société\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"2aaee1ae-e253-41bf-9f47-eeaa3a27e6a7\",\r\n    \"title\": {\r\n      \"en\": \"Topography, geology and natural disasters\",\r\n      \"fr\": \"Topographie, géologie et catastrophes naturelles\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"40b7310c-1409-4fa8-a007-eda4fbb99fa1\",\r\n    \"title\": {\r\n      \"en\": \"Toponymy and administrative boundaries\",\r\n      \"fr\": \"Toponymie et limites administratives\"\r\n    }\r\n  },\r\n  {\r\n    \"theme_uuid\": \"70187cc5-d8e7-4318-94e3-74e3586f8cf3\",\r\n    \"title\": {\r\n      \"en\": \"Transport and communication networks\",\r\n      \"fr\": \"Réseaux de transport et de communication\"\r\n    }\r\n  }\r\n]",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Themes information",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "997e48d2-bd43-4f3d-a82d-584cc7ed8988",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "0530fc7f-9531-4617-85e2-513a798841b0",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "730417b5-cf0d-4a9e-b77a-a32c53102dd8",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "b1728334-361d-4e1d-8696-bd54e2655c3c",
+            "type": "http",
+            "documentation": "Gets the Departments that the currently logged in User/Publisher has access to.",
+            "method": "get",
+            "endpoint": "ddr_registry_departments",
+            "responses": [
+                {
+                    "uuid": "acccbc36-f609-4552-9634-def44d375f97",
+                    "body": "[\r\n  {\r\n    \"default_download_id\": \"DDR_DOWNLOAD1\",\r\n    \"default_qgis_server_id\": \"DDR_QGS1\",\r\n    \"download_root_subpath\": \"gccp-sftp-test-bucket\",\r\n    \"id\": \"2c4ecfff-4649-4e9c-a899-a8e7891cb9a6\",\r\n    \"name_en\": \"Natural Resources Canada\",\r\n    \"name_fr\": \"Ressources Naturelles Canada\",\r\n    \"qgis_data_store_root_subpath\": \"nrcan\",\r\n    \"tbs_dept_acrn_en\": \"NRCan\",\r\n    \"tbs_dept_acrn_fr\": \"RNCan\"\r\n  }\r\n]",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "The list of DDR Registry Departments",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "5a545927-2cd1-4da5-a25e-a8f0068f30ef",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "d05e11c4-8ffe-4b21-b168-41d5e0647a7b",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "e7731c87-20a4-4bdf-8d6a-760313d8c9ea",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "b15b642c-5561-4536-a458-c75cbbb4050a",
+            "type": "http",
+            "documentation": "Gets the email of the logged in user according to their email in the DDR Registry.",
+            "method": "get",
+            "endpoint": "ddr_registry_my_publisher_email",
+            "responses": [
+                {
+                    "uuid": "901bbae4-22aa-4568-8c13-15ed3a553c1f",
+                    "body": "\t\r\n{\r\n  \"email\": \"foo.bar@nrcan-rncan.gc.ca\"\r\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "The email of the logged in user",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "ccd173b4-dd3b-45dd-84df-465246e86bb6",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "0588e88a-fcc2-41cd-9524-cc11f38ada5b",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "cafb1831-1a52-464e-8cdd-cd0862c326c4",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "05dc12aa-5511-4733-8290-e921e6692e44",
+            "type": "http",
+            "documentation": "Gets the Downloads that the currently logged in User/Publisher has access to.",
+            "method": "get",
+            "endpoint": "ddr_registry_downloads",
+            "responses": [
+                {
+                    "uuid": "b628c48a-6cb3-4919-a78d-82f95d3bb973",
+                    "body": "[\r\n  {\r\n    \"id\": \"DDR_DOWNLOAD1\"\r\n  },\r\n  {\r\n    \"id\": \"DDR_DOWNLOAD_Internal\"\r\n  },\r\n  {\r\n    \"id\": \"download_id\"\r\n  }\r\n]",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "The list of DDR Registry Downloads",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "7781a422-54ed-4930-90dc-d0ed6d59e388",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "9c8f21a6-0c1d-40c4-87cb-ca7f002c2862",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "24a92798-3e92-4598-917e-9464379dff63",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "4363f172-6c99-4f3d-88bb-c6ee28552985",
+            "type": "http",
+            "documentation": "Gets the Servers that the currently logged in User/Publisher has access to.",
+            "method": "get",
+            "endpoint": "ddr_registry_servers",
+            "responses": [
+                {
+                    "uuid": "4dac76fc-cf16-447c-b6fd-dec8d0717e6b",
+                    "body": "[\r\n  {\r\n    \"id\": \"DDR_QGS_Internal\"\r\n  },\r\n  {\r\n    \"id\": \"DDR_QGS1\"\r\n  }\r\n]",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "The list of DDR Registry Servers",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "a767b50c-b15f-461b-a10e-35dacac82a6a",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "238c9bcf-fc74-41d6-80e6-2e647512ca0f",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "4a400d05-87b6-486f-a413-5711a37e72f6",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "0d885115-4585-4edd-ade3-3eb86afecea5",
+            "type": "http",
+            "documentation": "Validates an input package",
+            "method": "post",
+            "endpoint": "validate",
+            "responses": [
+                {
+                    "uuid": "a5cb840b-cf59-43be-b476-1aa6c9371c70",
+                    "body": "{\r\n  \"results\": [\r\n    [\r\n      {\r\n        \"abstract\": \"\",\r\n        \"crs\": \"3979\",\r\n        \"data_exists_in_database\": false,\r\n        \"extent\": {\r\n          \"xMaximum\": 437045.589105608,\r\n          \"xMinimum\": 337177.66932444,\r\n          \"yMaximum\": 3120151.83088257,\r\n          \"yMinimum\": 2976647.44632561\r\n        },\r\n        \"extent4326\": {\r\n          \"xMaximum\": -77.34625354961648,\r\n          \"xMinimum\": -82.38349713770896,\r\n          \"yMaximum\": 77.02516796766662,\r\n          \"yMinimum\": 75.98311979636807\r\n        },\r\n        \"feature_count\": 111,\r\n        \"fields\": [\r\n          \"fid\",\r\n          \"Quatreclas\"\r\n        ],\r\n        \"fields_id_valid\": true,\r\n        \"fields_ids\": [\r\n          \"fid\"\r\n        ],\r\n        \"geom_type\": \"Polygon\",\r\n        \"is_geopackage\": true,\r\n        \"is_geopackage_in_input\": true,\r\n        \"is_valid\": true,\r\n        \"keywords\": [],\r\n        \"name\": \"coco1234\",\r\n        \"name_short\": \"coco1234\",\r\n        \"name_table\": \"test5__coco1234\",\r\n        \"name_valid\": \"valid\",\r\n        \"style_exists_in_database\": \"no\",\r\n        \"styles\": [\r\n          \"Test\",\r\n          \"default\"\r\n        ],\r\n        \"temporal\": {\r\n          \"begin\": null,\r\n          \"end\": null,\r\n          \"isActive\": false\r\n        },\r\n        \"type\": \"feature\",\r\n        \"uri\": {\r\n          \"layerId\": \"None\",\r\n          \"layerName\": \"coco1234\",\r\n          \"path\": \"/app/data/qgis_vector_layers.gpkg\"\r\n        }\r\n      }\r\n    ],\r\n    [\r\n      {\r\n        \"abstract\": \"\",\r\n        \"crs\": \"3979\",\r\n        \"data_exists_in_database\": false,\r\n        \"extent\": {\r\n          \"xMaximum\": 437045.589105608,\r\n          \"xMinimum\": 337177.66932444,\r\n          \"yMaximum\": 3120151.83088257,\r\n          \"yMinimum\": 2976647.44632561\r\n        },\r\n        \"extent4326\": {\r\n          \"xMaximum\": -77.34625354961648,\r\n          \"xMinimum\": -82.38349713770896,\r\n          \"yMaximum\": 77.02516796766662,\r\n          \"yMinimum\": 75.98311979636807\r\n        },\r\n        \"feature_count\": 111,\r\n        \"fields\": [\r\n          \"fid\",\r\n          \"Quatreclas\"\r\n        ],\r\n        \"fields_id_valid\": true,\r\n        \"fields_ids\": [\r\n          \"fid\"\r\n        ],\r\n        \"geom_type\": \"Polygon\",\r\n        \"is_geopackage\": true,\r\n        \"is_geopackage_in_input\": true,\r\n        \"is_valid\": true,\r\n        \"keywords\": [],\r\n        \"name\": \"coco1234\",\r\n        \"name_short\": \"coco1234\",\r\n        \"name_table\": \"test5__coco1234\",\r\n        \"name_valid\": \"valid\",\r\n        \"style_exists_in_database\": \"no\",\r\n        \"styles\": [\r\n          \"Test\",\r\n          \"default\"\r\n        ],\r\n        \"temporal\": {\r\n          \"begin\": null,\r\n          \"end\": null,\r\n          \"isActive\": false\r\n        },\r\n        \"type\": \"feature\",\r\n        \"uri\": {\r\n          \"layerId\": \"None\",\r\n          \"layerName\": \"coco1234\",\r\n          \"path\": \"/app/data/qgis_vector_layers.gpkg\"\r\n        }\r\n      }\r\n    ]\r\n  ]\r\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "The information the API was able to read from the project file",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "c0ade9d1-2eb7-408a-8075-ee0dbc087541",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "ef999408-ae44-4865-b00b-d856130e8178",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "fe8adc04-f565-466a-9656-0d7edb9a27f3",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "1ff02d9c-68ab-4807-a5fb-ccc0334632f0",
+            "type": "http",
+            "documentation": "Loads the data and publishes the project file(s) in QGIS Server",
+            "method": "put",
+            "endpoint": "publish",
+            "responses": [
+                {
+                    "uuid": "9683d15b-78d5-471b-bb46-98d5cc21295c",
+                    "body": "",
+                    "latency": 0,
+                    "statusCode": 204,
+                    "label": "Successfully exported the data and published the project file(s) in QGIS Server",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "af6ede87-69b2-434b-bd3e-f669b16a7133",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "cf7e17bf-5ad4-448f-a824-1888e3781995",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "4d4a9c96-464c-4458-88a4-de67fea2f7f0",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "81913eab-d985-4e61-8297-eca29b6deeb7",
+            "type": "http",
+            "documentation": "Updates the data and re-publishes the project file(s) in QGIS Server",
+            "method": "patch",
+            "endpoint": "update",
+            "responses": [
+                {
+                    "uuid": "2b27db61-1ad6-4165-8d62-6db21910d084",
+                    "body": "",
+                    "latency": 0,
+                    "statusCode": 204,
+                    "label": "Successfully updated the data and re-published the project file(s) in QGIS Server",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "0fed0189-584f-4980-bf70-de95a8a820d2",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "ee7df217-003c-4e03-b0ec-3238607448f6",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "6422636a-ed92-4085-870b-9691bd13f1a1",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        },
+        {
+            "uuid": "2ad388e4-c41e-4a38-a895-a06bb618205f",
+            "type": "http",
+            "documentation": "Deletes a service and its linked data from QGIS Server",
+            "method": "delete",
+            "endpoint": "unpublish",
+            "responses": [
+                {
+                    "uuid": "d8e01698-5284-4c1e-bdec-8f926f080843",
+                    "body": "",
+                    "latency": 0,
+                    "statusCode": 204,
+                    "label": "Successfully deleted the Service",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": true
+                },
+                {
+                    "uuid": "1fbf874e-e69d-431f-bfbf-aea2c6d93ca2",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 401,
+                    "label": "Access token is missing or invalid",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "key": "WWW_Authenticate",
+                            "value": ""
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "62df9785-39e2-46bf-a726-7aa0ef596edc",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 403,
+                    "label": "Access token does not have the required scope",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                },
+                {
+                    "uuid": "174dae98-f2b2-40db-83fe-f9f539929f05",
+                    "body": "{\n  \"status\": {{faker 'datatype.number'}},\n  \"title\": \"\",\n  \"detail\": \"\",\n  \"detail_fr\": \"\",\n  \"type\": \"\"\n}",
+                    "latency": 0,
+                    "statusCode": 200,
+                    "label": "Internal error",
+                    "headers": [
+                        {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ],
+                    "bodyType": "INLINE",
+                    "filePath": "",
+                    "databucketID": "",
+                    "sendFileAsBody": false,
+                    "rules": [],
+                    "rulesOperator": "OR",
+                    "disableTemplating": false,
+                    "fallbackTo404": false,
+                    "default": false
+                }
+            ],
+            "enabled": true,
+            "responseMode": null
+        }
+    ],
+    "rootChildren": [
+        {
+            "type": "route",
+            "uuid": "f516b7fd-f95a-4633-aa44-5efc5aa60a99"
+        },
+        {
+            "type": "route",
+            "uuid": "6544a3d9-176c-412c-88c5-adcc1b827676"
+        },
+        {
+            "type": "route",
+            "uuid": "b1728334-361d-4e1d-8696-bd54e2655c3c"
+        },
+        {
+            "type": "route",
+            "uuid": "b15b642c-5561-4536-a458-c75cbbb4050a"
+        },
+        {
+            "type": "route",
+            "uuid": "05dc12aa-5511-4733-8290-e921e6692e44"
+        },
+        {
+            "type": "route",
+            "uuid": "4363f172-6c99-4f3d-88bb-c6ee28552985"
+        },
+        {
+            "type": "route",
+            "uuid": "0d885115-4585-4edd-ade3-3eb86afecea5"
+        },
+        {
+            "type": "route",
+            "uuid": "1ff02d9c-68ab-4807-a5fb-ccc0334632f0"
+        },
+        {
+            "type": "route",
+            "uuid": "81913eab-d985-4e61-8297-eca29b6deeb7"
+        },
+        {
+            "type": "route",
+            "uuid": "2ad388e4-c41e-4a38-a895-a06bb618205f"
+        }
+    ],
+    "proxyMode": false,
+    "proxyHost": "",
+    "proxyRemovePrefix": false,
+    "tlsOptions": {
+        "enabled": false,
+        "type": "CERT",
+        "pfxPath": "",
+        "certPath": "",
+        "keyPath": "",
+        "caPath": "",
+        "passphrase": ""
+    },
+    "cors": true,
+    "headers": [
+        {
+            "key": "Content-Type",
+            "value": "application/json"
+        }
+    ],
+    "proxyReqHeaders": [
+        {
+            "key": "",
+            "value": ""
+        }
+    ],
+    "proxyResHeaders": [
+        {
+            "key": "",
+            "value": ""
+        }
+    ],
+    "data": []
+}
