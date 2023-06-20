@@ -732,6 +732,9 @@ class ResponseCodes(object):
 
         if status == 200:
             Utils.push_info(feedback, "INFO: A token or a refresh token is given to the user")
+
+            Utils.push_info(feedback, "INFO: ", f"JSON Response: {str(response)}...")
+
             json_response = response.json()
             # Store the access token in a global variable for access by other entry points
             LoginToken.set_token(json_response["access_token"])
