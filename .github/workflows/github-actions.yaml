@@ -34,7 +34,7 @@ jobs:
       run: ls -l
     
     - name: Start Mockoon server
-      run: mockoon-cli start --data ./mockoon.json
+      run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
       
     - name: Install ArgoCD CLI
       id: install_argocd
