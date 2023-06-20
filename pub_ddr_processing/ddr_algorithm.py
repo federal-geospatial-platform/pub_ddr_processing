@@ -838,12 +838,14 @@ class DdrLogin(QgsProcessingAlgorithm):
         auth_cfg.configMap()
         auth_info = auth_cfg.configMap()
 
-        try:
-            username = auth_info['username']
-            password = auth_info['password']
-        except KeyError:
-            raise UserMessageException("Unable to extract username/password from QGIS "
-                                       "authentication system")
+        username = "coco1"
+        password = "coco2"
+        #try:
+        #    username = auth_info['username']
+        #    password = auth_info['password']
+        #except KeyError:
+        #    raise UserMessageException("Unable to extract username/password from QGIS "
+        #                               "authentication system")
 
         return username, password
 
