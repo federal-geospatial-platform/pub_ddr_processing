@@ -820,57 +820,6 @@ class DdrLogin(QgsProcessingAlgorithm):
         """Reads the different parameters in the form and stores the content in the data structure"""
 
 #        import web_pdb; web_pdb.set_trace()
-      
-        from qgis.core import  QgsAuthMethodConfig, QgsApplication
-
-        authMgr = QgsApplication.authManager()
-        if authMgr.authenticationDatabasePath():
-            # already initialized => we are inside a QGIS app.
-            if authMgr.masterPasswordIsSet():
-                msg = 'Authentication master password not recognized'
-                assert authMgr.masterPasswordSame("your master password"), msg
-            else:
-                msg = 'Master password could not be set'
-                # The verify parameter checks if the hash of the password was
-                # already saved in the authentication db
-                assert authMgr.setMasterPassword("your master password",
-                                                  verify=True), msg
-        else:
-            # outside qgis, e.g. in a testing environment => setup env var before
-            # db init
-            os.environ['QGIS_AUTH_DB_DIR_PATH'] = "/path/where/located/qgis-auth.db"
-            msg = 'Master password could not be set'
-            assert authMgr.setMasterPassword("your master password", True), msg
-            authMgr.init("/path/where/located/qgis-auth.db")      
-
-        managerAU  = QgsApplication.authManager()
-        file_name = managerAU.authDatabaseConfigTable()
-        Utils.push_info(feedback, f"INFO: Credentials DB File: {file_name}")
-        file_path = managerAU.authenticationDatabasePath()
-        Utils.push_info(feedback, f"INFO: Credentials DB Path: {file_path}")
-        namesAU = [name for name in managerAU.availableAuthMethodConfigs().keys()]
-        for nameAU in namesAU:
-            newAU = QgsAuthMethodConfig()
-            managerAU.loadAuthenticationConfig(nameAU, newAU, True)
-            cMap = newAU.configMap()
-            Utils.push_info(feedback, f"INFO: Grapped config: {str(cMap)}")
-      
-        cfg = QgsAuthMethodConfig()
-        cfg.setMethod("Basic")
-        cfg.setName("mfrt4444hn8")
-        cfg.setConfig("username", "mfrthn8")
-        cfg.setConfig("password", "a123456")
-        #cfg.setConfigMap(cMap)
-        cfg.configMap()
-        Utils.push_info(feedback, f"INFO: isValid: {str(cfg.isValid())}")
-        cfg.setId("p7h9tdd")
-        auth_manager = QgsApplication.authManager()
-        result_store = auth_manager.storeAuthenticationConfig(cfg, True)
-        Utils.push_info(feedback, f"INFO: Config ID: {cfg.id()}")
-        lst_id = auth_manager.configIds()
-        Utils.push_info(feedback, f"INFO: LST Config IDs: {str(lst_id)}")
-        Utils.push_info(feedback, f"INFO: Result store: {str(result_store)}")
-         
         auth_method = self.parameterAsString(parameters, 'AUTHENTICATION', context)
         environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
@@ -890,11 +839,6 @@ class DdrLogin(QgsProcessingAlgorithm):
         auth_info = auth_cfg.configMap()
 
         try:
-          
-            Utils.push_info(feedback, f"INFO: Juste avant: {auth_method}")
-            Utils.push_info(feedback, f"INFO: Juste avant: {environment}")
-            Utils.push_info(feedback, f"INFO: Juste avant: {str(auth_info)}")        
-          
             username = auth_info['username']
             password = auth_info['password']
         except KeyError:

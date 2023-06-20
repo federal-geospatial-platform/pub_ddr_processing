@@ -30,9 +30,8 @@ __revision__ = '$Format:%H$'
 import os
 import sys
 import inspect
-
 from qgis.core import QgsProcessingAlgorithm, QgsApplication
-from .pub_ddr_processing_provider import PubDdrProvider
+from .pub_ddr_processing.pub_ddr_processing_provider import PubDdrProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
 
