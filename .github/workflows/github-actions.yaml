@@ -71,7 +71,6 @@ jobs:
         docker exec qgis-testing-environment sh -c "ln -s /tests_directory /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
         docker exec qgis-testing-environment sh -c "ls -l /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
 
-        
         docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:login --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --AUTHENTICATION=p3m9sdd --ENVIRONMENT=Testing"
         
         #docker exec qgis-testing-environment sh -c "ls -l tests_directory"
