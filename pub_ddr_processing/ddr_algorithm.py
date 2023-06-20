@@ -823,6 +823,26 @@ class DdrLogin(QgsProcessingAlgorithm):
       
         from qgis.core import  QgsAuthMethodConfig, QgsApplication
 
+        authMgr = QgsApplication.authManager()
+        if authMgr.authenticationDatabasePath():
+            # already initialized => we are inside a QGIS app.
+            if authMgr.masterPasswordIsSet():
+                msg = 'Authentication master password not recognized'
+                assert authMgr.masterPasswordSame("your master password"), msg
+            else:
+                msg = 'Master password could not be set'
+                # The verify parameter checks if the hash of the password was
+                # already saved in the authentication db
+                assert authMgr.setMasterPassword("your master password",
+                                                  verify=True), msg
+        else:
+            # outside qgis, e.g. in a testing environment => setup env var before
+            # db init
+            os.environ['QGIS_AUTH_DB_DIR_PATH'] = "/path/where/located/qgis-auth.db"
+            msg = 'Master password could not be set'
+            assert authMgr.setMasterPassword("your master password", True), msg
+            authMgr.init("/path/where/located/qgis-auth.db")      
+
         managerAU  = QgsApplication.authManager()
         file_name = managerAU.authDatabaseConfigTable()
         Utils.push_info(feedback, f"INFO: Credentials DB File: {file_name}")
