@@ -825,20 +825,6 @@ class DdrLogin(QgsProcessingAlgorithm):
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
         DdrInfo.add_environment(environment)
 
-        # Get the application's authentication manager
-        auth_mgr = QgsApplication.authManager()
-
-        # Create an empty QgsAuthMethodConfig object
-        auth_cfg = QgsAuthMethodConfig()
-
-        # Load config from manager to the new config instance and decrypt sensitive data
-        auth_mgr.loadAuthenticationConfig(auth_method, auth_cfg, True)
-
-        # Get the configuration information (including username and password)
-        auth_cfg.configMap()
-        auth_info = auth_cfg.configMap()
-
-
 
 
         authMgr = QgsApplication.authManager()
@@ -872,7 +858,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         Utils.push_info(feedback, f"INFO: Grapped config ID: {str(cfg.id())}")
 
 
-        
+
         managerAU = QgsApplication.authManager()
         file_name = managerAU.authDatabaseConfigTable()
         Utils.push_info(feedback, f"INFO: Credentials DB File: {file_name}")
@@ -887,7 +873,18 @@ class DdrLogin(QgsProcessingAlgorithm):
 
 
 
+        # Get the application's authentication manager
+        auth_mgr = QgsApplication.authManager()
 
+        # Create an empty QgsAuthMethodConfig object
+        auth_cfg = QgsAuthMethodConfig()
+
+        # Load config from manager to the new config instance and decrypt sensitive data
+        auth_mgr.loadAuthenticationConfig(auth_method, auth_cfg, True)
+
+        # Get the configuration information (including username and password)
+        auth_cfg.configMap()
+        auth_info = auth_cfg.configMap()
 
 
 
