@@ -159,7 +159,7 @@ class UtilsGui():
             name='QGS_SERVER_ID',
             description=self.tr('Select the QGIS server'),
             options=lst_qgs_server_id,
-            defaultValue=lst_qgs_server_id[0],
+            defaultValue="DDR_QGS1",
             usesStaticStrings=True,
             allowMultiple=False))
 
@@ -199,7 +199,7 @@ class UtilsGui():
             name='ENVIRONMENT',
             description=self.tr('Select execution environment (should be production)'),
             options=lst_flag,
-            defaultValue=lst_flag[0],
+            defaultValue="Staging",
             usesStaticStrings=True,
             allowMultiple=False)
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -706,7 +706,7 @@ class DdrUnpublish(QgsProcessingAlgorithm):
         UtilsGui.add_department(self)
         UtilsGui.add_email(self)
         UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
+#        UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
