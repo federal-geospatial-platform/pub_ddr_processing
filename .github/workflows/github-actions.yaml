@@ -72,6 +72,9 @@ jobs:
         docker exec qgis-testing-environment sh -c "ls -l /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
 
         docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:login --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --AUTHENTICATION=p3m9sdd --ENVIRONMENT=Testing"
+        qgis_process run pub_ddr_processing:publish --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7030 --QGIS_FILE_EN='test5_en.qgs' --QGIS_FILE_FR='dummy\test5_fr.qgs' --DEPARTMENT=nrcan --METADATA_UUID=5c8559e4-ee59-47cc-8572-637c40f9aebb --EMAIL='foo.bar@nrcan-rncan.gc.ca' --DOWNLOAD_INFO_ID=DDR_DOWNLOAD1 --QGS_SERVER_ID=DDR_QGS_Internal --KEEP_FILES=No
+
+
         
         #docker exec qgis-testing-environment sh -c "ls -l tests_directory"
         #docker exec qgis-testing-environment sh -c "cd tests_directory"
