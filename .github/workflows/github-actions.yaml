@@ -55,6 +55,9 @@ jobs:
         docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
         
         docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
+        docker exec qgis-testing-environment sh -c "export XDG_RUNTIME_DIR=/tests_directory"
+        docker exec qgis-testing-environment sh -c "export RUNLEVEL=3"
+
         docker exec qgis-testing-environment sh -c "cd tests_directory/pub_ddr_processing"
         
         set +e
