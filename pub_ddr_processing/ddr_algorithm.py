@@ -826,7 +826,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         DdrInfo.add_environment(environment)
 
 
-
+"""
         authMgr = QgsApplication.authManager()
         if authMgr.authenticationDatabasePath():
             # already initialized => we are inside a QGIS app.
@@ -856,20 +856,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         auth_manager.storeAuthenticationConfig(cfg)
         cfg.id()
         Utils.push_info(feedback, f"INFO: Grapped config ID: {str(cfg.id())}")
-
-
-
-        managerAU = QgsApplication.authManager()
-        file_name = managerAU.authDatabaseConfigTable()
-        Utils.push_info(feedback, f"INFO: Credentials DB File: {file_name}")
-        file_path = managerAU.authenticationDatabasePath()
-        Utils.push_info(feedback, f"INFO: Credentials DB Path: {file_path}")
-        namesAU = [name for name in managerAU.availableAuthMethodConfigs().keys()]
-        for nameAU in namesAU:
-            newAU = QgsAuthMethodConfig()
-            managerAU.loadAuthenticationConfig(nameAU, newAU, True)
-            cMap = newAU.configMap()
-            Utils.push_info(feedback, f"INFO: Grapped config: {str(cMap)}")
+"""
 
 
 
