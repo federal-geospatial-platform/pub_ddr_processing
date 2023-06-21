@@ -31,7 +31,7 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :type iface: QgsInterface
     """
     #
-    from .pub_ddr_processinga import PubDdrPlugin
+    from .pub_ddr_processing_plg import PubDdrPlugin
     import os 
 
     return PubDdrPlugin()
