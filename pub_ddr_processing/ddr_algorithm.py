@@ -837,7 +837,7 @@ class DdrLogin(QgsProcessingAlgorithm):
 #                msg = 'Master password could not be set'
 #                # The verify parameter checks if the hash of the password was
 #                # already saved in the authentication db
-        authMgr.setMasterPassword("MasterPass123$", verify=True)
+        authMgr.setMasterPassword("MasterPass124$", verify=True)
 #                Utils.push_info(feedback, f"INFO: Code 2")
 #        else:
 #            # outside qgis, e.g. in a testing environment => setup env var before
