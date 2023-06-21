@@ -504,7 +504,6 @@ class Utils:
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.post(url, verify=False, headers=headers, json=json_doc)
-            print ('rep ', response)
 
             ResponseCodes.create_access_token(feedback, response)
 

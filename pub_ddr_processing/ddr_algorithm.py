@@ -826,7 +826,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         DdrInfo.add_environment(environment)
 
 
-        authMgr = QgsApplication.authManager()
+#        authMgr = QgsApplication.authManager()
 #        if authMgr.authenticationDatabasePath():
 #            # already initialized => we are inside a QGIS app.
 #            if authMgr.masterPasswordIsSet():
@@ -837,7 +837,7 @@ class DdrLogin(QgsProcessingAlgorithm):
 #                msg = 'Master password could not be set'
 #                # The verify parameter checks if the hash of the password was
 #                # already saved in the authentication db
-        authMgr.setMasterPassword("MasterPass123$", verify=True)
+#        authMgr.setMasterPassword("MasterPass123$", verify=True)
 #                Utils.push_info(feedback, f"INFO: Code 2")
 #        else:
 #            # outside qgis, e.g. in a testing environment => setup env var before
@@ -859,6 +859,11 @@ class DdrLogin(QgsProcessingAlgorithm):
 #        cfg.id()
 #        Utils.push_info(feedback, f"INFO: Grapped config ID: {str(cfg.id())}")
 
+
+        # Enable the extraction of the password when working in the testing or mocking environment
+        if environment == "Testing":
+            authMgr = QgsApplication.authManager()
+            authMgr.setMasterPassword("MasterPass123$", verify=True)
 
 
         # Get the application's authentication manager
@@ -883,6 +888,8 @@ class DdrLogin(QgsProcessingAlgorithm):
             raise UserMessageException("Unable to extract username/password from QGIS "
                                        "authentication system")
 
+        Utils.push_info(feedback, f"INFO: Username: {username}")
+        Utils.push_info(feedback, f"INFO: Username: {password}")
         return username, password
 
     def processAlgorithm(self, parameters, context, feedback):
