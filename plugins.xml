@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <plugins>
-    <pyqgis_plugin name="DDR Processing" version="1.0.4">
+    <pyqgis_plugin name="DDR Processing" version="1.0.5">
         <description>This plugin allows to publish, unpublish, edit and validate a collection with the DDR.</description>
          <homepage>
               <![CDATA[https://github.com/federal-geospatial-platform/pub_ddr_processing]]>
@@ -11,7 +11,7 @@
         <icon>https:/federal-geospatial-platform.github.io/Plugin_Repository/logo_pub_ddr_publication.png</icon>
         <author_name>Daniel Pilon</author_name>
         <create_date>2023-03-01</create_date>
-        <update_date>2023-06-19</update_date>
+        <update_date>2023-06-23</update_date>
         <experimental>False</experimental>
         <deprecated>False</deprecated>
         <download_url>https://federal-geospatial-platform.github.io/Plugin_Repository/pub_ddr_processing.zip</download_url>
