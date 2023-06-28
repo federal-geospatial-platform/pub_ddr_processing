@@ -13,8 +13,8 @@ jobs:
     
     strategy:
       matrix:
-        docker_tags: [latest]
-        # docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
+        # docker_tags: [latest]
+        docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
 
     steps:
     - name: Checkout repository
@@ -58,7 +58,7 @@ jobs:
         docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
         echo "exitcode=$?" >> $GITHUB_OUTPUT
         
-        # Setup the pub_ddr_processing plugin and the directory 
+        # Setup the pub_ddr_processing plugin and the directory
         docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
         docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
         docker exec qgis-testing-environment sh -c "ln -s /tests_directory /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
