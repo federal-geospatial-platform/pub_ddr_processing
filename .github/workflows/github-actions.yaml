@@ -60,9 +60,9 @@ jobs:
 
         docker exec qgis-testing-environment sh -c "cd tests_directory/pub_ddr_processing"
         
-        # set +e
+        set +e
         docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
-        # echo "exitcode=$?" >> $GITHUB_OUTPUT
+        echo "exitcode=$?" >> $GITHUB_OUTPUT
         
         # docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
 
