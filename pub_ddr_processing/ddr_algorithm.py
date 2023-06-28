@@ -67,6 +67,7 @@ class ControlFile:
     core_subject_term: str = ''
     in_project_filename: str = None
     language: str = None
+    gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
     gpkg_file_name: str = None           # Name of Geopackage containing the vector layers
     control_file_dir: str = None         # Name of temporary directory
     control_file_name: str = None        # Name of the control file
@@ -601,6 +602,7 @@ class Utils:
             if src_layer.isSpatial():
                 if src_layer.type() == QgsMapLayer.VectorLayer:
                     # Only copy vector layer
+                    ctl_file.gpkg_layer_counter += 1  # Update the counter of vector layer
                     options = QgsVectorFileWriter.SaveVectorOptions()
                     options.layerName = DdrInfo.get_layer_short_name(src_layer)
                     options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer if Path(
@@ -661,6 +663,10 @@ class Utils:
                            Path(ctl_file.gpkg_file_name).name,
                            Path(ctl_file.out_qgs_project_file_en).name,
                            Path(ctl_file.out_qgs_project_file_fr).name]
+        if ctl_file.gpkg_layer_counter >= 1:
+            # Add the GPKG file to the ZIP file if vector layers are present
+            lst_file_to_zip.append(Path(ctl_file.gpkg_file_name).name)
+            
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
         Utils.push_info(feedback, f"INFO: Creating the zip file: {ctl_file.zip_file_name}")
         with zipfile.ZipFile(ctl_file.zip_file_name, mode="w") as archive:
