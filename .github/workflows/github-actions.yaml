@@ -15,7 +15,8 @@ jobs:
     
     strategy:
       matrix:
-        docker_tags: [release-3_26, latest]
+        docker_tags: [latest]
+        # docker_tags: [release-3_26, latest]
         # docker_tags: [release-3_16, release-3_18, latest]
 
     steps:
@@ -24,8 +25,6 @@ jobs:
 
     - name: Set up Node.js
       uses: actions/setup-node@v2
-      #with:
-      #  node-version: 'latest'
 
     - name: Install Mockoon
       run: npm install -g @mockoon/cli
@@ -36,7 +35,7 @@ jobs:
     - name: Start Mockoon server
       run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
       
-    - name: Install ArgoCD CLI
+    - name: Install ArgoCD CLI and test Mockoon server
       id: install_argocd
       shell: bash
       run: |
@@ -51,6 +50,7 @@ jobs:
     - name: Docker set up QGIS
       run: |
         
+        # Install and start Mockoon
         docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli"
         docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
         
@@ -60,11 +60,11 @@ jobs:
 
         docker exec qgis-testing-environment sh -c "cd tests_directory/pub_ddr_processing"
         
-        set +e
+        # set +e
         docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
-        echo "exitcode=$?" >> $GITHUB_OUTPUT
+        # echo "exitcode=$?" >> $GITHUB_OUTPUT
         
-        docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
+        # docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
 
 
         docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
@@ -76,25 +76,4 @@ jobs:
 
 
         
-        #docker exec qgis-testing-environment sh -c "ls -l tests_directory"
-        #docker exec qgis-testing-environment sh -c "cd tests_directory"
-        #docker exec qgis-testing-environment sh -c "pwd"
-        #docker exec qgis-testing-environment sh -c "ls -l"
-        # docker exec qgis-testing-environment sh -c "cd pub_ddr_processing"
-        # docker exec qgis-testing-environment sh -c "ls -l"
-        #docker exec qgis-testing-environment sh -c "cd .."
-        #docker exec qgis-testing-environment sh -c "qgis_process run patch_mockoon_user.py"
-        #docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
-        #docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
-        #docker exec qgis-testing-environment sh -c "ln -s /tests_directory/$PLUGIN_NAME /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
-        #docker exec qgis-testing-environment sh -c "cd tests_directory/$PLUGIN_NAME"
-        #docker exec qgis-testing-environment sh -c "ls -l"
-        #docker exec qgis-testing-environment sh -c "qgis_process run tests_directory/$PLUGIN_NAME/patch_mockoon_user.py"
-        # docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
-        # docker exec qgis-testing-environment sh -c "ln -s /tests_directory/$PLUGIN_NAME /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
-        # docker exec qgis-testing-environment sh -c "qgis_process run  patch_mockoon_user.py"
-        # docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:login --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --AUTHENTICATION=p7h9tdd --ENVIRONMENT=Testing"
-        # docker exec qgis-testing-environment sh -c "qgis_process list"
-        # docker exec qgis-testing-environment sh -c "pip3 install -r /tests_directory/REQUIREMENTS_TESTING.txt"
-        # docker exec qgis-testing-environment sh -c "apt-get update"
-        # docker exec qgis-testing-environment sh -c "apt-get install -y r-base"
+
