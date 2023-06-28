@@ -660,7 +660,6 @@ class Utils:
 
         # Create the zip file with the 4 files
         lst_file_to_zip = [Path(ctl_file.control_file_name).name,
-                           Path(ctl_file.gpkg_file_name).name,
                            Path(ctl_file.out_qgs_project_file_en).name,
                            Path(ctl_file.out_qgs_project_file_fr).name]
         if ctl_file.gpkg_layer_counter >= 1:
