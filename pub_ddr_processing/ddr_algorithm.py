@@ -132,6 +132,7 @@ class DdrInfo(object):
     __email = None
     __json_downloads = None
     __json_servers = None
+    __json_department = None
     __dict_environments = None
 
     @staticmethod
@@ -256,10 +257,22 @@ class DdrInfo(object):
     def get_department_lst():
         """Extract the departments in the form of a list"""
 
-        department_lst = []
-        for item in DdrInfo.__json_department:
-            department = item['qgis_data_store_root_subpath']
-            department_lst.append(department)
+        if DdrInfo.__json_department is not None:
+            department_lst = []
+            is_attached = None
+            for item in DdrInfo.__json_department:
+                department = item['qgis_data_store_root_subpath']
+                if item.get('is_attached'):
+                    is_attached = department
+                else:
+                    department_lst.append(department)
+
+            # Add the department of the ADMIN (is_attached) in the first position
+            if is_attached is not None:
+                department_lst.insert(0, is_attached)
+        else:
+            # Manage the case where the Login is not done and the JSON structure not filed
+            department_lst = ["<empty>"]
 
         return department_lst
 
@@ -336,8 +349,8 @@ class DdrInfo(object):
     def get_downloads_lst():
         """Extract the departments in the form of a list"""
 
-        downloads_lst = []
         if DdrInfo.__json_downloads is not None:
+            downloads_lst = []
             for item in DdrInfo.__json_downloads:
                 id_value = item['id']
                 downloads_lst.append(id_value)
@@ -365,8 +378,8 @@ class DdrInfo(object):
     def get_servers_lst():
         """Extract the departments in the form of a list"""
 
-        servers_lst = []
         if DdrInfo.__json_servers is not None:
+            servers_lst = []
             for item in DdrInfo.__json_servers:
                 id_value = item['id']
                 servers_lst.append(id_value)
@@ -1010,11 +1023,12 @@ class UtilsGui():
     def add_department(self):
         """Add Select department menu"""
 
+        department_lst = DdrInfo.get_department_lst()
         self.addParameter(QgsProcessingParameterEnum(
             name='DEPARTMENT',
             description=self.tr("Select the department"),
-            options=DdrInfo.get_department_lst(),
-            defaultValue="nrcan",
+            options=department_lst,
+            defaultValue=department_lst[0],
             usesStaticStrings=True,
             allowMultiple=False))
 
