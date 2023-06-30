@@ -5,8 +5,9 @@
 [general]
 name=DDR Publication (processing)
 qgisMinimumVersion=3.22
-description=This plugin contains allows to publish, unpublish, edit and validate data collection in the FGP DDR.
-version=1.0.6
+qgisMaximumVersion=3.28
+description=This plugin allows to publish, unpublish, edit and validate data collection in the FGP DDR.
+version=1.0.7
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
@@ -37,6 +38,9 @@ changelog=
         - Add config_env.yaml file to configure the different http environments
     1.0.6 2023-06-28
         - Correct bug when processing file qgs project with no vector layer
+    1.0.7 2023-06-29
+        - Handle the modified JSON from the end point /ddr_registry_departments
+        - Adjusting the YAML configuration file
 
 # Tags are comma separated with spaces allowed
 tags=vector, publication, metadata, FGP

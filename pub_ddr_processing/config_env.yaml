@@ -1,5 +1,6 @@
 Environment:
   Production: https:PLace here the IP address
   Staging: https://qgis.ddr-stage.services.geo.ca/api
+  Dev: https://pub-api.ddr-dev.services.geo.ca/api
   Test: http://localhost:3000/api
 default_env: Staging
