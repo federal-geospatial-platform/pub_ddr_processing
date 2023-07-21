@@ -63,7 +63,7 @@ class ControlFile:
     email: str = None
     metadata_uuid: str = None
     qgis_server_id: str = None
-    download_package_name: str = ''
+    download_package_file: str = ''
     core_subject_term: str = ''
     in_project_filename: str = None
     language: str = None
@@ -416,7 +416,7 @@ class Utils:
                 "email": ctl_file.email,
                 "metadata_uuid": ctl_file.metadata_uuid,
                 "qgis_server_id": ctl_file.qgs_server_id,
-                "download_package_name": ctl_file.download_package_name,
+                "download_package_name": Path(ctl_file.download_package_file).name,
                 "core_subject_term": ctl_file.core_subject_term,
                 "czs_collection_theme": theme_uuid
             },
@@ -634,6 +634,17 @@ class Utils:
                 Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not spatial ==> transferred")
 
     @staticmethod
+    def copy_download_package_file(ctl_file, feedback):
+        "Copy the download package file in the temp repository"
+
+        download_package_in = Path(ctl_file.download_package_file)
+        download_package_name = download_package_in.name
+        download_package_out =  os.path.joint(ctl_file.control_file_dir, download_package_name)
+        shutil.copy(str(download_package_in), download_package_out)
+
+        Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} in the temp repository {download_package_out}")
+
+    @staticmethod
     def set_layer_data_source(ctl_file, feedback):
 
         def _set_layer():
@@ -678,6 +689,8 @@ class Utils:
         if ctl_file.gpkg_layer_counter >= 1:
             # Add the GPKG file to the ZIP file if vector layers are present
             lst_file_to_zip.append(Path(ctl_file.gpkg_file_name).name)
+        if ctl_file.download_package_file is not None or ctl_file.download_package_file != '':
+            lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
             
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
         Utils.push_info(feedback, f"INFO: Creating the zip file: {ctl_file.zip_file_name}")
@@ -726,6 +739,16 @@ class Utils:
                 leading_sp = len(line) - len(line.lstrip())  # Extract the number of leading spaces
                 line = line.replace(line[0:leading_sp], "." * leading_sp)  # Replace leading spaces by "." (dots)
             feedback.pushInfo(f"{str_date_time} - {str(message)}{line}")
+
+    @staticmethod
+    def get_core_subject_term():
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir))
+        file_path = os.path.join(path, "pub_ddr_processing")
+        file_path = os.path.join(file_path, "core_subject_term.json")
+        with open(file_path) as file:
+            cst = json.load(file)
+            return cst["core_subject_term"]
+
 
 
 class ResponseCodes(object):
@@ -966,7 +989,7 @@ class UtilsGui():
 
     HELP_USAGE = """
         <b>Usage</b>
-        <u>Select the validation type</u>: <i>Publish</i>: For the publication of a collection; <i>Unpublish</i>: For deleting a collection; <i>Republish</i>: For updating an existing collection.  
+        <u>Select the validation type</u>: <i>Publish</i>: For the publication of a collection; <i>Unpublish</i>: For deleting a collection; <i>Update</i>: For updating an existing collection.  
         <u>Select the English QGIS project file (.qgs)</u>: Select the project file with the ENGLISH layer description.
         <u>Select the French QGIS project file (.qgs)</u>: Select the project file with the French layer description.
         <u>Select the department</u>: Select which department own the publication.
@@ -978,7 +1001,7 @@ class UtilsGui():
         <u>Enter your email address</u>: Email address used to send publication notification.
         <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
         <u>Select execution environment (should be production)</u> : Name of the execution environment. 
-        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Republish, Validate</i> process.</b>
+        <b>Note All parameters may not apply to each <i>Publish, Unpublish, Update, Validate</i> process.</b>
     """
 
     @staticmethod
@@ -986,13 +1009,14 @@ class UtilsGui():
         """Add Login menu"""
 
         self.addParameter(
-            QgsProcessingParameterAuthConfig('AUTHENTICATION', 'Authentication Configuration', defaultValue=None))
+            QgsProcessingParameterAuthConfig('AUTHENTICATION', \
+                'Select a DDR Publication Authentication Configuration or create a new one', defaultValue=None))
 
     @staticmethod
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
-        lst_validation_type = ["Publish", "Republish", "Unpublish"]
+        lst_validation_type = ["Publish", "Update", "Unpublish"]
         self.addParameter(QgsProcessingParameterEnum(
             name='VALIDATION_TYPE',
             description=self.tr("Select the validation type"),
@@ -1120,7 +1144,7 @@ class UtilsGui():
             defaultValue=DdrInfo.get_default_environment(),
             usesStaticStrings=True,
             allowMultiple=False)
-        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
 
     @staticmethod
@@ -1136,7 +1160,33 @@ class UtilsGui():
         ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
         ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
         ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
+        ctl_file.download_package_file = self.parameterAsString(parameters, 'DOWNLOAD_PACKAGE', context)
 
+    @staticmethod
+    def add_download_package(self):
+        """Add Download package file selector to menu"""
+
+        DdrInfo.load_config_env_yaml()
+        parameter = QgsProcessingParameterFile(
+            name='DOWNLOAD_PACKAGE',
+            description=self.tr('Select the download package file (.zip)'),
+            behavior=QgsProcessingParameterFile.File,
+            extension="zip")
+        # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_core_subject_term(self):
+
+        DdrInfo.load_config_env_yaml()
+        parameter = QgsProcessingParameterEnum(
+            name="CORE_SUBJECT",
+            description=self.tr('Select the appropriate core subject term (mandatory if you are adding a download package, otherwise it is optional)'),
+            options=Utils.get_core_subject_term(),
+            usesStaticStrings=True,
+            allowMultiple=False)
+        # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
 
 def dispatch_algorithm(self, process_type, parameters, context, feedback):
 
@@ -1154,6 +1204,9 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
 
     # Copy the selected layers in the GPKG file
     Utils.copy_layer_gpkg(ctl_file, feedback)
+
+    # Copy tehe download package file in temp repository
+    Utils.copy_download_package_file(ctl_file, feedback)
 
     # Set the layer data source
     Utils.set_layer_data_source(ctl_file, feedback)
@@ -1265,6 +1318,8 @@ class DdrPublish(QgsProcessingAlgorithm):
         UtilsGui.add_download_info(self)
         UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1332,7 +1387,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Republish Project')
+        return self.tr('Update Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1355,7 +1410,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
         """
         help_str = """
     This plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
-    It can only republish vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
+    It can only update vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
     SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project can be updated. \
     A message is displayed in the log and an email is sent to the user informing the latter on the status of \
     the publication. 
@@ -1386,6 +1441,8 @@ class DdrUpdate(QgsProcessingAlgorithm):
         UtilsGui.add_download_info(self)
         UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1474,10 +1531,10 @@ class DdrValidate(QgsProcessingAlgorithm):
         """
         help_str = """
     This processing plugin validates the content of a QGIS project files (.qgs) FR and EN. If the validation \
-    pass, the project can be publish, republish or unpublish to the DDR repository. If the validation fail, \
+    pass, the project can be publish, update or unpublish to the DDR repository. If the validation fail, \
     you must edit the QGIS  and rerun the validation. This plugin does not write anything into the QGIS \
     server so you can rerun it safely until there is no error and than run the appropriate tool (publish, \
-    unpublish or republish). """
+    unpublish or update). """
 
         help_str += help_str + UtilsGui.HELP_USAGE
 
@@ -1617,12 +1674,15 @@ class DdrUnpublish(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
+        UtilsGui.add_environment(self)
         UtilsGui.add_qgis_file(self)
         UtilsGui.add_department(self)
         UtilsGui.add_email(self)
         UtilsGui.add_download_info(self)
 #        UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1640,10 +1700,10 @@ class DdrUnpublish(QgsProcessingAlgorithm):
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
-        Utils.push_info(feedback, f"INFO: Publishing to DDR")
+        Utils.push_info(feedback, f"INFO: Unpublishing to DDR")
         Utils.push_info(feedback, f"INFO: HTTP Delete Request: {url}")
         Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
-        Utils.push_info(feedback, f"INFO: Zip file to publish: {ctl_file.zip_file_name}")
+        Utils.push_info(feedback, f"INFO: Zip file sent to unpublish process: {ctl_file.zip_file_name}")
 
         try:
             response = requests.delete(url, files=files, verify=False, headers=headers)
@@ -1708,7 +1768,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """This processing plugin logs into the DDR repository server. The authentication operation is \
-        mandatory before  doing any management operation: publication, unpublication republication, or validation. 
+        mandatory before  doing any management operation: publish, update, unpublish or validate. 
         """
 
         help_str = help_str + UtilsGui.HELP_USAGE
