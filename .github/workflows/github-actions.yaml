@@ -18,45 +18,24 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
       with:
         ref: republish_to_update
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
+      uses: actions/setup-node@v2
 
-    # - name: Install Mockoon
-    #   run: npm install -g @mockoon/cli
+    - name: Install Mockoon
+      run: npm install -g @mockoon/cli
     
-    # - name: Start Mockoon server
-    #   run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
+    - name: Start Mockoon server
+      run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
       
-    # - name: Install ArgoCD CLI and test Mockoon server
-    #   id: install_argocd
-    #   shell: bash
-    #   run: |
-    #       curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
-
-    - name: Run Mockoon CLI
-      uses: mockoon/cli-action@v1
-      with:
-        # Mockoon CLI version, default to 'latest'
-        version: "latest"
-        # Mockoon local data file or URL
-        data-file: "./pub_ddr_processing/mockoon.json"
-        # port, default to 3000
-        port: 3000
-    - name: Make test call
-      uses: indiesdev/curl@v1.1
-      id: test
-      with:
-        url: http://localhost:3000/api/login
-        method: "POST"
-        accept: 200,201
-        headers: '{"accept": "application/json", "Content-Type": "application/json"}'
-        body: '{"password": "PASSWORD", "username": "alexandre-roy"}'
+    - name: Install ArgoCD CLI and test Mockoon server
+      id: install_argocd
+      shell: bash
+      run: |
+          curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
           
     # Pull and run the QGIS Docker environment
     - name: Docker pull and create qgis-testing-environment
