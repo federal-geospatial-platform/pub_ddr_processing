@@ -63,8 +63,8 @@ class ControlFile:
     email: str = None
     metadata_uuid: str = None
     qgis_server_id: str = None
-    download_package_file: str = ''
-    core_subject_term: str = ''
+    download_package_file: str = None
+    core_subject_term: str = None
     in_project_filename: str = None
     language: str = None
     gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
@@ -409,6 +409,10 @@ class Utils:
         # Creation of the JSON control file
         theme_uuid = DdrInfo.get_theme_uuid(ctl_file.csz_collection_theme)
 
+        download_package_name = ''
+        if ctl_file.download_package_file is not None:
+            download_package_name = Path(ctl_file.download_package_file).stem
+
         json_control_file = {
             "generic_parameters": {
                 "department": ctl_file.department,
@@ -416,7 +420,7 @@ class Utils:
                 "email": ctl_file.email,
                 "metadata_uuid": ctl_file.metadata_uuid,
                 "qgis_server_id": ctl_file.qgs_server_id,
-                "download_package_name": Path(ctl_file.download_package_file).name,
+                "download_package_name": download_package_name,
                 "core_subject_term": ctl_file.core_subject_term,
                 "czs_collection_theme": theme_uuid
             },
@@ -639,7 +643,7 @@ class Utils:
 
         download_package_in = Path(ctl_file.download_package_file)
         download_package_name = download_package_in.name
-        download_package_out =  os.path.joint(ctl_file.control_file_dir, download_package_name)
+        download_package_out =  os.path.join(ctl_file.control_file_dir, download_package_name)
         shutil.copy(str(download_package_in), download_package_out)
 
         Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} in the temp repository {download_package_out}")
@@ -689,7 +693,7 @@ class Utils:
         if ctl_file.gpkg_layer_counter >= 1:
             # Add the GPKG file to the ZIP file if vector layers are present
             lst_file_to_zip.append(Path(ctl_file.gpkg_file_name).name)
-        if ctl_file.download_package_file is not None or ctl_file.download_package_file != '':
+        if ctl_file.download_package_file is not None:
             lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
             
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
@@ -1160,31 +1164,36 @@ class UtilsGui():
         ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
         ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
         ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
+        ctl_file.core_subject_term = self.parameterAsString(parameters, 'CORE_SUBJECT_TERM', context)
         ctl_file.download_package_file = self.parameterAsString(parameters, 'DOWNLOAD_PACKAGE', context)
+        if ctl_file.download_package_file =='':
+            ctl_file.download_package_file = None
 
     @staticmethod
     def add_download_package(self):
         """Add Download package file selector to menu"""
 
-        DdrInfo.load_config_env_yaml()
         parameter = QgsProcessingParameterFile(
             name='DOWNLOAD_PACKAGE',
             description=self.tr('Select the download package file (.zip)'),
             behavior=QgsProcessingParameterFile.File,
-            extension="zip")
+            extension="zip",
+            optional=True,
+            defaultValue=None)
         # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
 
     @staticmethod
     def add_core_subject_term(self):
 
-        DdrInfo.load_config_env_yaml()
         parameter = QgsProcessingParameterEnum(
-            name="CORE_SUBJECT",
+            name="CORE_SUBJECT_TERM",
             description=self.tr('Select the appropriate core subject term (mandatory if you are adding a download package, otherwise it is optional)'),
             options=Utils.get_core_subject_term(),
             usesStaticStrings=True,
-            allowMultiple=False)
+            allowMultiple=False,
+            optional=True,
+            defaultValue=None)
         # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
 
@@ -1205,8 +1214,9 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     # Copy the selected layers in the GPKG file
     Utils.copy_layer_gpkg(ctl_file, feedback)
 
-    # Copy tehe download package file in temp repository
-    Utils.copy_download_package_file(ctl_file, feedback)
+    if ctl_file.download_package_file is not None:
+        # Copy the download package file in temp repository
+        Utils.copy_download_package_file(ctl_file, feedback)
 
     # Set the layer data source
     Utils.set_layer_data_source(ctl_file, feedback)
@@ -1409,7 +1419,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """
-    This plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
+    This plugin updates the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
     It can only update vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
     SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project can be updated. \
     A message is displayed in the log and an email is sent to the user informing the latter on the status of \
@@ -1461,7 +1471,7 @@ class DdrUpdate(QgsProcessingAlgorithm):
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
 
-        Utils.push_info(feedback, f"INFO: Updating to DDR")
+        Utils.push_info(feedback, f"INFO: Pushing updates to DDR")
         Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
         Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
         Utils.push_info(feedback, f"INFO: Zip file to update: {ctl_file.zip_file_name}")
@@ -1561,6 +1571,8 @@ class DdrValidate(QgsProcessingAlgorithm):
         UtilsGui.add_download_info(self)
         UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
