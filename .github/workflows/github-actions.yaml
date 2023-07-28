@@ -20,22 +20,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
+    # - name: Set up Node.js
+    #   uses: actions/setup-node@v3
+    #   with:
+    #     node-version: 16
 
-    - name: Install Mockoon
-      run: npm install -g @mockoon/cli
+    # - name: Install Mockoon
+    #   run: npm install -g @mockoon/cli
     
-    - name: Start Mockoon server
-      run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
+    # - name: Start Mockoon server
+    #   run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
       
-    - name: Install ArgoCD CLI and test Mockoon server
-      id: install_argocd
-      shell: bash
-      run: |
-          curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
+    # - name: Install ArgoCD CLI and test Mockoon server
+    #   id: install_argocd
+    #   shell: bash
+    #   run: |
+    #       curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
           
     # Pull and run the QGIS Docker environment
     - name: Docker pull and create qgis-testing-environment
