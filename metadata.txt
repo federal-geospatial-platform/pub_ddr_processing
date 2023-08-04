@@ -41,6 +41,9 @@ changelog=
     1.0.7 2023-06-29
         - Handle the modified JSON from the end point /ddr_registry_departments
         - Adjusting the YAML configuration file
+    1.0.8 2023-08-04
+        - New option to add a download package for all CRUD operation
+        - Renamed the operation republish to update
 
 # Tags are comma separated with spaces allowed
 tags=vector, publication, metadata, FGP
