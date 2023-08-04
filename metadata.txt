@@ -7,7 +7,7 @@ name=DDR Publication (processing)
 qgisMinimumVersion=3.22
 qgisMaximumVersion=3.28
 description=This plugin allows to publish, unpublish, edit and validate data collection in the FGP DDR.
-version=1.0.7
+version=1.0.8
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
