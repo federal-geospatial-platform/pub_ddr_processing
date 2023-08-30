@@ -25,7 +25,7 @@ __copyright__ = '(C) 2021 by Daniel Pilon'
 # This will get replaced with a git SHA1 when you do a git archive
 __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
-from .ddr_algorithm import DdrPublish, DdrValidate, DdrUpdate, DdrUnpublish, DdrLogin
+from .ddr_algorithm import DdrPublishProject, DdrPublishZipFile, DdrValidate, DdrUpdateProject, DdrUpdateZipFile, DdrUnpublish, DdrLogin
 import os
 
 import inspect
@@ -52,8 +52,10 @@ class PubDdrProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(DdrLogin())
-        self.addAlgorithm(DdrPublish())
-        self.addAlgorithm(DdrUpdate())
+        self.addAlgorithm(DdrPublishProject())
+        self.addAlgorithm(DdrPublishZipFile())
+        self.addAlgorithm(DdrUpdateProject())
+        self.addAlgorithm(DdrUpdateZipFile())
         self.addAlgorithm(DdrValidate())
         self.addAlgorithm(DdrUnpublish())
 

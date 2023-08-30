@@ -1253,7 +1253,7 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     return
 
 
-class DdrPublish(QgsProcessingAlgorithm):
+class DdrPublishProject(QgsProcessingAlgorithm):
     """Main class defining the Simplify algorithm as a QGIS processing algorithm.
     """
 
@@ -1265,17 +1265,17 @@ class DdrPublish(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrPublish()
+        return DdrPublishProject()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'publish'
+        return 'publish_project'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Publish Project')
+        return self.tr('Publish - QGIS Project')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1377,7 +1377,131 @@ class DdrPublish(QgsProcessingAlgorithm):
         return {}
 
 
-class DdrUpdate(QgsProcessingAlgorithm):
+class DdrPublishZipFile(QgsProcessingAlgorithm):
+    """Main class defining the Simplify algorithm as a QGIS processing algorithm.
+    """
+
+    def tr(self, string):  # pylint: disable=no-self-use
+        """Returns a translatable string with the self.tr() function.
+        """
+        return QCoreApplication.translate('Processing', string)
+
+    def createInstance(self):  # pylint: disable=no-self-use
+        """Returns a new copy of the algorithm.
+        """
+        return DdrPublishZipFile()
+
+    def name(self):  # pylint: disable=no-self-use
+        """Returns the unique algorithm name.
+        """
+        return 'publish_zip_file'
+
+    def displayName(self):  # pylint: disable=no-self-use
+        """Returns the translated algorithm name.
+        """
+        return self.tr('Publish - Download File')
+
+    def group(self):
+        """Returns the name of the group this algorithm belongs to.
+        """
+        return self.tr(self.groupId())
+
+    def groupId(self):  # pylint: disable=no-self-use
+        """Returns the unique ID of the group this algorithm belongs to.
+        """
+        return 'Management (second step)'
+
+    def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
+
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+
+    def shortHelpString(self):
+        """Returns a localised short help string for the algorithm.
+        """
+        help_str = """
+    This processing plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
+    It can only publish vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
+    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project file will follow. \
+    Also, it will upload files to an FTP when a download package file is selected as well as a core subject term.\
+    A message is displayed in the log and an email is sent to the user informing the latter on the status of \
+    the publication. 
+
+        """
+
+        help_str += help_str + UtilsGui.HELP_USAGE
+
+        return self.tr(help_str)
+
+    def icon(self):  # pylint: disable=no-self-use
+        """Define the logo of the algorithm.
+        """
+
+        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
+        return icon
+
+    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
+        """Define the inputs and outputs of the algorithm.
+        """
+
+        UtilsGui.add_qgis_file(self)
+        UtilsGui.add_department(self)
+        UtilsGui.add_uuid(self)
+        UtilsGui.add_csz_themes(self)
+        UtilsGui.add_email(self)
+        UtilsGui.add_download_info(self)
+        UtilsGui.add_qgs_server_id(self)
+        UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
+
+    def read_parameters(self, ctl_file, parameters, context, feedback):
+        """Reads the different parameters in the form and stores the content in the data structure"""
+
+        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
+
+        return
+
+    @staticmethod
+    def publish_project_file(ctl_file, parameters, context, feedback):
+        """"""
+
+        url = DdrInfo.get_http_environment()
+        url += "/publish"
+        headers = {'accept': 'application/json',
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+        files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
+
+        Utils.push_info(feedback, f"INFO: Publishing to DDR")
+        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+        Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
+        Utils.push_info(feedback, f"INFO: Zip file to publish: {ctl_file.zip_file_name}")
+        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+        try:
+            response = requests.put(url, files=files, verify=False, headers=headers)
+            ResponseCodes.publish_project_file(feedback, response)
+
+        except requests.exceptions.RequestException as e:
+            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+
+        return
+
+    def processAlgorithm(self, parameters, context, feedback):
+        """Main method that extract parameters and call Simplify algorithm.
+        """
+
+        try:
+            dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
+        except UserMessageException as e:
+            Utils.push_info(feedback, f"ERROR: Publish process")
+            Utils.push_info(feedback, f"ERROR: {str(e)}")
+
+        return {}
+
+
+class DdrUpdateProject(QgsProcessingAlgorithm):
     """Main class defining the Update algorithm as a QGIS processing algorithm.
     """
 
@@ -1389,12 +1513,136 @@ class DdrUpdate(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrUpdate()
+        return DdrUpdateProject()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'update'
+        return 'update_project'
+
+    def displayName(self):  # pylint: disable=no-self-use
+        """Returns the translated algorithm name.
+        """
+        return self.tr('Update - QGIS Project')
+
+    def group(self):
+        """Returns the name of the group this algorithm belongs to.
+        """
+        return self.tr(self.groupId())
+
+    def groupId(self):  # pylint: disable=no-self-use
+        """Returns the unique ID of the group this algorithm belongs to.
+        """
+        return 'Management (second step)'
+
+    def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
+
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+
+    def shortHelpString(self):
+        """Returns a localised short help string for the algorithm.
+        """
+        help_str = """
+    This processing plugin updates the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
+    It can only update vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
+    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project can be updated. \
+    Also, it will update the files on the FTP if a download package file is selected as well as a core subject term. \
+    A message is displayed in the log and an email is sent to the user informing the latter on the status of \
+    the publication. 
+
+        """
+
+        help_str += help_str + UtilsGui.HELP_USAGE
+
+        return self.tr(help_str)
+
+    def icon(self):  # pylint: disable=no-self-use
+        """Define the logo of the algorithm.
+        """
+
+        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
+        return icon
+
+    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
+        """Define the inputs and outputs of the algorithm.
+        """
+
+        UtilsGui.add_qgis_file(self)
+        UtilsGui.add_department(self)
+#        UtilsGui.add_uuid(self)
+        UtilsGui.add_csz_themes(self)
+        UtilsGui.add_email(self)
+        UtilsGui.add_download_info(self)
+        UtilsGui.add_qgs_server_id(self)
+        UtilsGui.add_keep_files(self)
+        UtilsGui.add_download_package(self)
+        UtilsGui.add_core_subject_term(self)
+
+    def read_parameters(self, ctl_file, parameters, context, feedback):
+        """Reads the different parameters in the form and stores the content in the data structure"""
+
+        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
+
+        return
+
+    @staticmethod
+    def update_project_file(ctl_file, parameters, context, feedback):
+        """"""
+
+        url = DdrInfo.get_http_environment()
+        url += "/update"
+        headers = {'accept': 'application/json',
+                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+        files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
+
+        Utils.push_info(feedback, f"INFO: Pushing updates to DDR")
+        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+        Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
+        Utils.push_info(feedback, f"INFO: Zip file to update: {ctl_file.zip_file_name}")
+        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+        try:
+            response = requests.patch(url, files=files, verify=False, headers=headers)
+            ResponseCodes.update_project_file(feedback, response)
+
+        except requests.exceptions.RequestException as e:
+            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+
+        return
+
+    def processAlgorithm(self, parameters, context, feedback):
+        """Main method that extract parameters and call Simplify algorithm.
+        """
+
+        try:
+            dispatch_algorithm(self, "UPDATE", parameters, context, feedback)
+        except UserMessageException as e:
+            Utils.push_info(feedback, f"ERROR: Update process")
+            Utils.push_info(feedback, f"ERROR: {str(e)}")
+
+        return {}
+
+
+class DdrUpdateZipFile(QgsProcessingAlgorithm):
+    """Main class defining the Update algorithm as a QGIS processing algorithm.
+    """
+
+    def tr(self, string):  # pylint: disable=no-self-use
+        """Returns a translatable string with the self.tr() function.
+        """
+        return QCoreApplication.translate('Processing', string)
+
+    def createInstance(self):  # pylint: disable=no-self-use
+        """Returns a new copy of the algorithm.
+        """
+        return DdrUpdateZipFile()
+
+    def name(self):  # pylint: disable=no-self-use
+        """Returns the unique algorithm name.
+        """
+        return 'update_zip_file'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
