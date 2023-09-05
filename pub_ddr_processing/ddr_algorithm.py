@@ -52,34 +52,37 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsProcessingParameterString, QgsProcessingParameterFolderDestination,
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
-                       QgsProcessingParameterFile, QgsProcessingParameterDefinition)
+                       QgsProcessingParameterFile, QgsProcessingParameterDefinition, QgsProcessingParameterBoolean,
+                       QgsProcessingOutputString)
 
 
 @dataclass
 class ControlFile:
     """Declare the fields in the control control file"""
 
-    download_info_id: str = None
-    email: str = None
-    metadata_uuid: str = None
-    qgis_server_id: str = None
-    download_package_file: str = None
-    core_subject_term: str = None
-    in_project_filename: str = None
-    language: str = None
-    gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
-    gpkg_file_name: str = None           # Name of Geopackage containing the vector layers
     control_file_dir: str = None         # Name of temporary directory
     control_file_name: str = None        # Name of the control file
-    zip_file_name: str = None            # Name of the zip file
-    keep_files: str = None               # Name of the flag to keep the temporary files and directory
-    json_document: str = None            # Name of the JSON document
+    core_subject_term: str = None
+    download_info_id: str = None
+    download_package_file: str = None
     dst_qgs_project_name: str = None     # Name of the output QGIS project file
-    qgis_project_file_en: str = None     # Name of the input English QGIS project file
-    qgis_project_file_fr: str = None     # Name of the input French QGIS project file
+    email: str = None
+    in_project_filename: str = None
+    json_document: str = None            # Name of the JSON document
+    keep_files: str = None               # Name of the flag to keep the temporary files and directory
+    gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
+    gpkg_file_name: str = None           # Name of Geopackage containing the vector layers
+    language: str = None
+    metadata_uuid: str = None
     out_qgs_project_file_en: str = None  # Name out the output English project file
     out_qgs_project_file_fr: str = None  # Name out the output English project file
+    qgis_project_file_en: str = None     # Name of the input English QGIS project file
+    qgis_project_file_fr: str = None     # Name of the input French QGIS project file
+    qgis_server_id: str = None
+    service_web: bool = None             # Flag for publishing a web service
+    service_download: bool = None        # Flag for publishing a download service
     validation_type: str = None          # Name of the type of validation
+    zip_file_name: str = None            # Name of the zip file
 
 
 class UserMessageException(Exception):
@@ -407,10 +410,28 @@ class Utils:
         # Creation of the JSON control file
         theme_uuid = DdrInfo.get_theme_uuid(ctl_file.csz_collection_theme)
 
-        download_package_name = ''
-        if ctl_file.download_package_file is not None:
+        if ctl_file.service_download:  # If service download is selected
             # Get the download package name without the extension
             download_package_name = Path(ctl_file.download_package_file).stem
+        else:
+            download_package_name = ''
+
+        if ctl_file.service_web:  # If service web is selected
+            service_parameters =  [
+                {
+                    "in_project_filename": Path(ctl_file.out_qgs_project_file_en).name,
+                    "language": 'English',
+                    "service_schema_name": ctl_file.department
+                },
+                {
+                    "in_project_filename": Path(ctl_file.out_qgs_project_file_fr).name,
+                    "language": 'French',
+                    "service_schema_name": ctl_file.department
+                }
+            ]
+        else:
+            service_parameters = []
+
 
         json_control_file = {
             "generic_parameters": {
@@ -423,18 +444,7 @@ class Utils:
                 "core_subject_term": ctl_file.core_subject_term,
                 "czs_collection_theme": theme_uuid
             },
-            "service_parameters": [
-                {
-                    "in_project_filename": Path(ctl_file.out_qgs_project_file_en).name,
-                    "language": 'English',
-                    "service_schema_name": ctl_file.department
-                },
-                {
-                    "in_project_filename": Path(ctl_file.out_qgs_project_file_fr).name,
-                    "language": 'French',
-                    "service_schema_name": ctl_file.department
-                }
-            ]
+            "service_parameters": service_parameters
         }
 
         # Serialize the JSON
@@ -639,7 +649,8 @@ class Utils:
 
     @staticmethod
     def copy_download_package_file(ctl_file, feedback):
-        "Copy the download package file in the temp repository"
+        """Copy the download package file in the temp repository
+        """
 
         download_package_in = Path(ctl_file.download_package_file)
         download_package_name = download_package_in.name
@@ -686,14 +697,17 @@ class Utils:
         current_dir = os.getcwd()  # Save current directory
         os.chdir(ctl_file.control_file_dir)
 
-        # Create the zip file with the 5 files
-        lst_file_to_zip = [Path(ctl_file.control_file_name).name,
-                           Path(ctl_file.out_qgs_project_file_en).name,
-                           Path(ctl_file.out_qgs_project_file_fr).name]
+        # Create the zip file
+        lst_file_to_zip = [Path(ctl_file.control_file_name).name]
+
+        #Append the needed files
+        if ctl_file.service_web:  # The service web is selected
+            lst_file_to_zip.append(Path(ctl_file.out_qgs_project_file_en).name)
+            lst_file_to_zip.append(Path(ctl_file.out_qgs_project_file_fr).name)
         if ctl_file.gpkg_layer_counter >= 1:
             # Add the GPKG file to the ZIP file if vector layers are present
             lst_file_to_zip.append(Path(ctl_file.gpkg_file_name).name)
-        if ctl_file.download_package_file is not None:
+        if ctl_file.download_package_file is not None:  # The service download is selected
             lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
             
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
@@ -1018,6 +1032,32 @@ class UtilsGui():
                 'Select a DDR Publication Authentication Configuration or create a new one', defaultValue=None))
 
     @staticmethod
+    def add_web_service(self, action):
+        """Add Select the check box for the web service"""
+
+        parameter = (QgsProcessingParameterBoolean(
+            name='SERVICE_WEB',
+            description=self.tr(f"Check if you choose to {action} a web service"),
+            defaultValue=False,
+            optional=False))
+        parameter.setHelp(f"Check the box if you which to {action} a web service and fill the section 'Web service parameters'")
+
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_download_service(self, action):
+        """Add Select the check box for the download service"""
+
+        parameter = (QgsProcessingParameterBoolean(
+            name='SERVICE_DOWNLOAD',
+            description=self.tr(f"Check if you choose to {action} a download service"),
+            defaultValue=False,
+            optional=False))
+        parameter.setHelp(f"Check the box if you which to {action} a download service and fill the section 'Download service parameters'")
+
+        self.addParameter(parameter)
+
+    @staticmethod
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
@@ -1028,25 +1068,32 @@ class UtilsGui():
             options=lst_validation_type,
             defaultValue=lst_validation_type[0],
             usesStaticStrings=True,
+            optional=False,
             allowMultiple=False))
 
     @staticmethod
-    def add_qgis_file(self):
+    def add_qgis_file(self, message):
         """Add Select EN and FR project file menu"""
 
-        self.addParameter(
-            QgsProcessingParameterFile(
+        parameter = QgsProcessingParameterFile(
                 name='QGIS_FILE_EN',
-                description=' Select the English QGIS project file (.qgs)',
+                description='<hr><br><b>Web service parameters</b><br><br>Select the English QGIS project file (.qgs)',
                 extension='qgs',
-                behavior=QgsProcessingParameterFile.File))
+                optional=True,
+                behavior=QgsProcessingParameterFile.File)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
 
-        self.addParameter(
-            QgsProcessingParameterFile(
+        parameter = QgsProcessingParameterFile(
                 name='QGIS_FILE_FR',
                 description=' Select the French QGIS project file (.qgs)',
                 extension='qgs',
-                behavior=QgsProcessingParameterFile.File))
+                optional=True,
+                behavior=QgsProcessingParameterFile.File)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
+
+
 
     @staticmethod
     def add_department(self):
@@ -1055,10 +1102,11 @@ class UtilsGui():
         department_lst = DdrInfo.get_department_lst()
         self.addParameter(QgsProcessingParameterEnum(
             name='DEPARTMENT',
-            description=self.tr("Select the department"),
+            description=self.tr("<br><b>General parameters</b><br><br>Select the department"),
             options=department_lst,
             defaultValue=department_lst[0],
             usesStaticStrings=True,
+            optional=False,
             allowMultiple=False))
 
     @staticmethod
@@ -1071,20 +1119,25 @@ class UtilsGui():
         self.addParameter(QgsProcessingParameterString(
             name="METADATA_UUID",
             defaultValue=str(str_uuid),
+            optional=False,
             description=self.tr('Enter the metadata UUID')))
 
     @staticmethod
-    def add_download_info(self):
+    def add_download_info(self, message):
         """Add Select download info menu"""
 
         lst_download_info_id = DdrInfo.get_downloads_lst()
-        self.addParameter(QgsProcessingParameterEnum(
+        parameter = QgsProcessingParameterEnum(
             name='DOWNLOAD_INFO_ID',
-            description=self.tr("Select the download info ID"),
+            description=self.tr("Select the download server"),
             options=lst_download_info_id,
             defaultValue=lst_download_info_id[0],
             usesStaticStrings=True,
-            allowMultiple=False))
+            optional=True,
+            allowMultiple=False)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
+
 
     @staticmethod
     def add_email(self):
@@ -1092,35 +1145,41 @@ class UtilsGui():
 
         parameter = QgsProcessingParameterString(
             name="EMAIL",
+            optional=False,
             defaultValue=str(DdrInfo.get_email()),
             description=self.tr('Enter your email address'))
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
 
     @staticmethod
-    def add_qgs_server_id(self):
+    def add_qgs_server_id(self, message):
         """Add Select server menu"""
 
         lst_qgs_server_id = DdrInfo.get_servers_lst()
-        self.addParameter(QgsProcessingParameterEnum(
+        parameter = QgsProcessingParameterEnum(
             name='QGS_SERVER_ID',
             description=self.tr('Select the QGIS server'),
             options=lst_qgs_server_id,
             defaultValue="DDR_QGS1",
             usesStaticStrings=True,
-            allowMultiple=False))
+            optional=True,
+            allowMultiple=False)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
 
     @staticmethod
-    def add_csz_themes(self):
+    def add_csz_themes(self, message):
         """Add Select themes menu"""
 
-        self.addParameter(QgsProcessingParameterEnum(
+        parameter = QgsProcessingParameterEnum(
             name='CSZ_THEMES',
-            description=self.tr("Select the Clip-Zip-Ship (CSZ) theme:"),
+            description=self.tr("Select the Clip-Zip-Ship (CSZ) theme"),
             options=[""] + DdrInfo.get_theme_lst("en"),
             usesStaticStrings=True,
             allowMultiple=False,
-            optional=True))
+            optional=True)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
 
     @staticmethod
     def add_keep_files(self):
@@ -1133,6 +1192,7 @@ class UtilsGui():
             options=lst_flag,
             defaultValue=lst_flag[1],
             usesStaticStrings=True,
+            optional=False,
             allowMultiple=False)
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
@@ -1155,6 +1215,8 @@ class UtilsGui():
     @staticmethod
     def read_parameters(self, ctl_file, parameters, context, feedback):
 
+        ctl_file.service_web = self.parameterAsString(parameters, 'SERVICE_WEB', context)
+        ctl_file.service_download = self.parameterAsString(parameters, 'SERVICE_DOWNLOAD', context)
         ctl_file.department = self.parameterAsString(parameters, 'DEPARTMENT', context)
         ctl_file.download_info_id = self.parameterAsString(parameters, 'DOWNLOAD_INFO_ID', context)
         ctl_file.metadata_uuid = self.parameterAsString(parameters, 'METADATA_UUID', context)
@@ -1171,30 +1233,31 @@ class UtilsGui():
             ctl_file.download_package_file = None
 
     @staticmethod
-    def add_download_package(self):
+    def add_download_package(self, message):
         """Add Download package file selector to menu"""
 
         parameter = QgsProcessingParameterFile(
             name='DOWNLOAD_PACKAGE',
-            description=self.tr('Select the download package file (.zip)'),
+            description=self.tr('<hr><br><b>Download service parameters</b><br><br>Select the download package file (.zip)'),
             behavior=QgsProcessingParameterFile.File,
             extension="zip",
             optional=True,
             defaultValue=None)
-        # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        parameter.setHelp(message)
         self.addParameter(parameter)
 
     @staticmethod
-    def add_core_subject_term(self):
+    def add_core_subject_term(self, message):
 
         parameter = QgsProcessingParameterEnum(
             name="CORE_SUBJECT_TERM",
-            description=self.tr('Select the appropriate core subject term (mandatory if you are adding a download package, otherwise it is optional)'),
+            description=self.tr('Select the appropriate core subject term'),
             options=Utils.get_core_subject_term(),
             usesStaticStrings=True,
             allowMultiple=False,
             optional=True,
             defaultValue=None)
+        parameter.setHelp(message)
         # parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
 
@@ -1209,18 +1272,19 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     # Extract the parameters
     self.read_parameters(ctl_file, parameters, context, feedback)
 
-    # Copy the QGIS project file (.qgs)
-    Utils.copy_qgis_project_file(ctl_file, feedback)
+    if ctl_file.service_web:  # if web_service is selected
+        # Copy the QGIS project file (.qgs)
+        Utils.copy_qgis_project_file(ctl_file, feedback)
 
-    # Copy the selected layers in the GPKG file
-    Utils.copy_layer_gpkg(ctl_file, feedback)
+        # Copy the selected layers in the GPKG file
+        Utils.copy_layer_gpkg(ctl_file, feedback)
 
-    if ctl_file.download_package_file is not None:
+        # Set the layer data source
+        Utils.set_layer_data_source(ctl_file, feedback)
+
+    if ctl_file.service_download:  # if download service is selected
         # Copy the download package file in temp repository
         Utils.copy_download_package_file(ctl_file, feedback)
-
-    # Set the layer data source
-    Utils.set_layer_data_source(ctl_file, feedback)
 
     # Creation of the JSON control file
     Utils.create_json_control_file(ctl_file, feedback)
@@ -1253,8 +1317,8 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     return
 
 
-class DdrPublishProject(QgsProcessingAlgorithm):
-    """Main class defining the Simplify algorithm as a QGIS processing algorithm.
+class DdrPublishService(QgsProcessingAlgorithm):
+    """Main class defining how to publish a service.
     """
 
     def tr(self, string):  # pylint: disable=no-self-use
@@ -1265,17 +1329,17 @@ class DdrPublishProject(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrPublishProject()
+        return DdrPublishService()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'publish_project'
+        return 'publish_service'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Publish - QGIS Project')
+        return self.tr('Publish a service')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1322,16 +1386,32 @@ class DdrPublishProject(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
-        UtilsGui.add_qgis_file(self)
+        # General parameters
+        action = "publish"
         UtilsGui.add_department(self)
         UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
+        UtilsGui.add_web_service(self, action)
+        UtilsGui.add_download_service(self, action)
+
+
+        # Web service parameters
+        message = "Mandatory if you choose to publish a web service"
+        message_opt = "Optional even if you choose to publish a web service"
+        UtilsGui.add_qgis_file(self, message)
+        UtilsGui.add_csz_themes(self, message_opt)
+        UtilsGui.add_qgs_server_id(self, message)
+
+        # Download service parameters
+        message = "Mandatory if you choose to publish a download service"
+        UtilsGui.add_download_package(self, message)
+        UtilsGui.add_core_subject_term(self, message)
+        UtilsGui.add_download_info(self, message)
+
+        # Advanced parameters
         UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
+
+
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1339,6 +1419,13 @@ class DdrPublishProject(QgsProcessingAlgorithm):
         UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
 
         return
+
+#    def checkParameterValues(self, parameters, context):
+#        """Check if the selection of the input parameters is valid"""
+#
+#        print ("coco le clown3")
+#
+#        return (False, "Il y a un problème \nCoco le clown")
 
     @staticmethod
     def publish_project_file(ctl_file, parameters, context, feedback):
@@ -1377,8 +1464,8 @@ class DdrPublishProject(QgsProcessingAlgorithm):
         return {}
 
 
-class DdrPublishZipFile(QgsProcessingAlgorithm):
-    """Main class defining the Simplify algorithm as a QGIS processing algorithm.
+class DdrUpdateService(QgsProcessingAlgorithm):
+    """Main class defining how to update a service..
     """
 
     def tr(self, string):  # pylint: disable=no-self-use
@@ -1389,141 +1476,17 @@ class DdrPublishZipFile(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrPublishZipFile()
+        return DdrUpdateService()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'publish_zip_file'
+        return 'update_service'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Publish - Download File')
-
-    def group(self):
-        """Returns the name of the group this algorithm belongs to.
-        """
-        return self.tr(self.groupId())
-
-    def groupId(self):  # pylint: disable=no-self-use
-        """Returns the unique ID of the group this algorithm belongs to.
-        """
-        return 'Management (second step)'
-
-    def flags(self):
-        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
-        """
-
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
-
-    def shortHelpString(self):
-        """Returns a localised short help string for the algorithm.
-        """
-        help_str = """
-    This processing plugin publishes the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
-    It can only publish vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
-    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project file will follow. \
-    Also, it will upload files to an FTP when a download package file is selected as well as a core subject term.\
-    A message is displayed in the log and an email is sent to the user informing the latter on the status of \
-    the publication. 
-
-        """
-
-        help_str += help_str + UtilsGui.HELP_USAGE
-
-        return self.tr(help_str)
-
-    def icon(self):  # pylint: disable=no-self-use
-        """Define the logo of the algorithm.
-        """
-
-        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
-        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
-        return icon
-
-    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
-        """Define the inputs and outputs of the algorithm.
-        """
-
-        UtilsGui.add_qgis_file(self)
-        UtilsGui.add_department(self)
-        UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
-        UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
-        UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
-
-    def read_parameters(self, ctl_file, parameters, context, feedback):
-        """Reads the different parameters in the form and stores the content in the data structure"""
-
-        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
-
-        return
-
-    @staticmethod
-    def publish_project_file(ctl_file, parameters, context, feedback):
-        """"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/publish"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
-
-        Utils.push_info(feedback, f"INFO: Publishing to DDR")
-        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-        Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
-        Utils.push_info(feedback, f"INFO: Zip file to publish: {ctl_file.zip_file_name}")
-        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-        try:
-            response = requests.put(url, files=files, verify=False, headers=headers)
-            ResponseCodes.publish_project_file(feedback, response)
-
-        except requests.exceptions.RequestException as e:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-        return
-
-    def processAlgorithm(self, parameters, context, feedback):
-        """Main method that extract parameters and call Simplify algorithm.
-        """
-
-        try:
-            dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
-        except UserMessageException as e:
-            Utils.push_info(feedback, f"ERROR: Publish process")
-            Utils.push_info(feedback, f"ERROR: {str(e)}")
-
-        return {}
-
-
-class DdrUpdateProject(QgsProcessingAlgorithm):
-    """Main class defining the Update algorithm as a QGIS processing algorithm.
-    """
-
-    def tr(self, string):  # pylint: disable=no-self-use
-        """Returns a translatable string with the self.tr() function.
-        """
-        return QCoreApplication.translate('Processing', string)
-
-    def createInstance(self):  # pylint: disable=no-self-use
-        """Returns a new copy of the algorithm.
-        """
-        return DdrUpdateProject()
-
-    def name(self):  # pylint: disable=no-self-use
-        """Returns the unique algorithm name.
-        """
-        return 'update_project'
-
-    def displayName(self):  # pylint: disable=no-self-use
-        """Returns the translated algorithm name.
-        """
-        return self.tr('Update - QGIS Project')
+        return self.tr('Update a service')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1570,16 +1533,16 @@ class DdrUpdateProject(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
-        UtilsGui.add_qgis_file(self)
+        UtilsGui.add_qgis_file(self, "")
         UtilsGui.add_department(self)
 #        UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
+        UtilsGui.add_csz_themes(self, "")
         UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
+        UtilsGui.add_download_info(self,"")
+        UtilsGui.add_qgs_server_id(self, "")
         UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
+        UtilsGui.add_download_package(self, "")
+        UtilsGui.add_core_subject_term(self, "")
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1625,131 +1588,7 @@ class DdrUpdateProject(QgsProcessingAlgorithm):
         return {}
 
 
-class DdrUpdateZipFile(QgsProcessingAlgorithm):
-    """Main class defining the Update algorithm as a QGIS processing algorithm.
-    """
-
-    def tr(self, string):  # pylint: disable=no-self-use
-        """Returns a translatable string with the self.tr() function.
-        """
-        return QCoreApplication.translate('Processing', string)
-
-    def createInstance(self):  # pylint: disable=no-self-use
-        """Returns a new copy of the algorithm.
-        """
-        return DdrUpdateZipFile()
-
-    def name(self):  # pylint: disable=no-self-use
-        """Returns the unique algorithm name.
-        """
-        return 'update_zip_file'
-
-    def displayName(self):  # pylint: disable=no-self-use
-        """Returns the translated algorithm name.
-        """
-        return self.tr('Update Project')
-
-    def group(self):
-        """Returns the name of the group this algorithm belongs to.
-        """
-        return self.tr(self.groupId())
-
-    def groupId(self):  # pylint: disable=no-self-use
-        """Returns the unique ID of the group this algorithm belongs to.
-        """
-        return 'Management (second step)'
-
-    def flags(self):
-        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
-        """
-
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
-
-    def shortHelpString(self):
-        """Returns a localised short help string for the algorithm.
-        """
-        help_str = """
-    This processing plugin updates the geospatial layers stored in .qgs project files (FR and EN) to the DDR repository. \
-    It can only update vector layers but the layers can be stored in any format supported by QGIS (e.g. GPKG, \
-    SHP, PostGIS, ...).  The style, service information, metadata stored in the .qgs project can be updated. \
-    Also, it will update the files on the FTP if a download package file is selected as well as a core subject term. \
-    A message is displayed in the log and an email is sent to the user informing the latter on the status of \
-    the publication. 
-
-        """
-
-        help_str += help_str + UtilsGui.HELP_USAGE
-
-        return self.tr(help_str)
-
-    def icon(self):  # pylint: disable=no-self-use
-        """Define the logo of the algorithm.
-        """
-
-        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
-        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
-        return icon
-
-    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
-        """Define the inputs and outputs of the algorithm.
-        """
-
-        UtilsGui.add_qgis_file(self)
-        UtilsGui.add_department(self)
-#        UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
-        UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
-        UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
-
-    def read_parameters(self, ctl_file, parameters, context, feedback):
-        """Reads the different parameters in the form and stores the content in the data structure"""
-
-        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
-
-        return
-
-    @staticmethod
-    def update_project_file(ctl_file, parameters, context, feedback):
-        """"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/update"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
-
-        Utils.push_info(feedback, f"INFO: Pushing updates to DDR")
-        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-        Utils.push_info(feedback, f"INFO: HTTP Headers: {str(headers)}")
-        Utils.push_info(feedback, f"INFO: Zip file to update: {ctl_file.zip_file_name}")
-        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-        try:
-            response = requests.patch(url, files=files, verify=False, headers=headers)
-            ResponseCodes.update_project_file(feedback, response)
-
-        except requests.exceptions.RequestException as e:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-        return
-
-    def processAlgorithm(self, parameters, context, feedback):
-        """Main method that extract parameters and call Simplify algorithm.
-        """
-
-        try:
-            dispatch_algorithm(self, "UPDATE", parameters, context, feedback)
-        except UserMessageException as e:
-            Utils.push_info(feedback, f"ERROR: Update process")
-            Utils.push_info(feedback, f"ERROR: {str(e)}")
-
-        return {}
-
-
-class DdrValidate(QgsProcessingAlgorithm):
+class DdrValidateService(QgsProcessingAlgorithm):
     """Main class defining the Simplify algorithm as a QGIS processing algorithm.
     """
 
@@ -1761,17 +1600,17 @@ class DdrValidate(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrValidate()
+        return DdrValidateService()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'validate'
+        return 'validate_service'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Validate Project')
+        return self.tr('Validate a service')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1814,16 +1653,16 @@ class DdrValidate(QgsProcessingAlgorithm):
         """
 
         UtilsGui.add_validation_type(self)
-        UtilsGui.add_qgis_file(self)
+        UtilsGui.add_qgis_file(self, "")
         UtilsGui.add_department(self)
         UtilsGui.add_uuid(self)
-        UtilsGui.add_csz_themes(self)
+        UtilsGui.add_csz_themes(self, "")
         UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
-        UtilsGui.add_qgs_server_id(self)
+        UtilsGui.add_download_info(self, "")
+        UtilsGui.add_qgs_server_id(self, "")
         UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
+        UtilsGui.add_download_package(self, "")
+        UtilsGui.add_core_subject_term(self, "")
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
@@ -1876,7 +1715,7 @@ class DdrValidate(QgsProcessingAlgorithm):
         return {}
 
 
-class DdrUnpublish(QgsProcessingAlgorithm):
+class DdrUnpublishService(QgsProcessingAlgorithm):
     """Main class defining the Unpublish algorithm as a QGIS processing algorithm.
     """
 
@@ -1888,17 +1727,17 @@ class DdrUnpublish(QgsProcessingAlgorithm):
     def createInstance(self):  # pylint: disable=no-self-use
         """Returns a new copy of the algorithm.
         """
-        return DdrUnpublish()
+        return DdrUnpublishService()
 
     def name(self):  # pylint: disable=no-self-use
         """Returns the unique algorithm name.
         """
-        return 'unpublish'
+        return 'unpublish_service'
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
-        return self.tr('Unpublish Project')
+        return self.tr('Unpublish a service')
 
     def group(self):
         """Returns the name of the group this algorithm belongs to.
@@ -1938,14 +1777,14 @@ class DdrUnpublish(QgsProcessingAlgorithm):
         """
 
         UtilsGui.add_environment(self)
-        UtilsGui.add_qgis_file(self)
+        UtilsGui.add_qgis_file(self, "")
         UtilsGui.add_department(self)
         UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self)
+        UtilsGui.add_download_info(self, "")
 #        UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self)
-        UtilsGui.add_core_subject_term(self)
+        UtilsGui.add_download_package(self, "")
+        UtilsGui.add_core_subject_term(self, "")
 
     def read_parameters(self, ctl_file, parameters, context, feedback):
         """Reads the different parameters in the form and stores the content in the data structure"""
