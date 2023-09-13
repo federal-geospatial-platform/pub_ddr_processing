@@ -55,6 +55,14 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition, QgsProcessingParameterBoolean,
                        QgsProcessingOutputString)
 
+PUBLISH = "PUBLISH"
+UNPUBLISH = "UNPUBLISH"
+UPDATE = "UPDATE"
+
+PUBLICATION_API = "Publication"
+REGISTRY_API = "Registry"
+
+
 
 @dataclass
 class ControlFile:
@@ -81,7 +89,7 @@ class ControlFile:
     qgis_server_id: str = None
     service_web: bool = None             # Flag for publishing a web service
     service_download: bool = None        # Flag for publishing a download service
-    validation_type: str = None          # Name of the type of validation
+    validate: str = None                 # Is the action in validate mode
     zip_file_name: str = None            # Name of the zip file
 
 
@@ -96,18 +104,18 @@ class LoginToken(object):
     # Class variable used to verify that the login class has been set
     __initialization_flag = False
 
-    # Class variable used to store the unique value of the login
-    __token = None
+    # Class variable used to store the unique token value of the login
+    __token = {}
 
     @staticmethod
-    def set_token(token):
+    def set_token(api_name, token):
         """This method sets the token """
 
-        LoginToken.__token = token
+        LoginToken.__token[api_name] = token
         LoginToken.__initialization_flag = True
 
     @staticmethod
-    def get_token(feedback):
+    def get_token(api_name, feedback):
         """This method allows to get the token. If the token is None than an error is rose because the login  was
            not done"""
 
@@ -116,7 +124,7 @@ class LoginToken(object):
             Utils.push_info(feedback, f"ERROR: Login first...")
             raise UserMessageException("The user must login first before doing any access to the DDR")
 
-        return LoginToken.__token
+        return LoginToken.__token[api_name]
 
 
 class DdrInfo(object):
@@ -132,6 +140,7 @@ class DdrInfo(object):
     __short_name_fr = None
     __json_theme = []
     __json_department = []
+    __json_download_info = []
     __email = None
     __json_downloads = None
     __json_servers = None
@@ -157,10 +166,12 @@ class DdrInfo(object):
             raise UserMessageException(f"The envrionment {environment} is invalid")
 
     @staticmethod
-    def get_http_environment():
+    def get_http_environment(api_name):
         """Get the http address related to an environment"""
 
-        return DdrInfo.__dict_environments[DdrInfo.__environment]
+        print (DdrInfo.__dict_environments)
+        print (DdrInfo.__dict_environments[DdrInfo.__environment][api_name])
+        return DdrInfo.__dict_environments[DdrInfo.__environment][api_name]
 
 
     @staticmethod
@@ -276,6 +287,44 @@ class DdrInfo(object):
             department_lst = ["<empty>"]
 
         return department_lst
+
+
+
+
+    @staticmethod
+    def add_download_info(json_download_info):
+        """Add the the themes from the JSON response structure
+           Verify the validity of the JSON structure"""
+
+        DdrInfo.__json_download_info = json_download_info
+        # Verify the structure/content of the JSON document
+        try:
+            for item in DdrInfo.__json_download_info:
+                dummy = item['core_subject_term']  # Just check that the key 'core_subject_term' exist
+                dummy = item['department_acrn_en']  # Just check that the key 'department_acrn_en' exist
+                dummy = item['download_folder_name']  # Just check that the key 'download_folder_name' exist
+                dummy = item['download_folder_path']  # Just check that the key 'download_folder_path' exist
+                dummy = item['download_id']  # Just check that the key 'download_id' exist
+                dummy = item['metadata_id']  # Just check that the key 'metadata_id_id' exist
+                dummy = item['thumbnail_image_file']  # Just check that the key 'thumbnail_image_file' exist
+
+        except KeyError:
+            # Bad structure raise an exception and crash
+            raise UserMessageException(f"Issue with the JSON response for the download_info: {json_download_info}")
+
+    @staticmethod
+    def get_download_info(key_name):
+        """Extract a specific field from the JSON document"""
+
+        try:
+            for item in DdrInfo.__json_download_info:
+                print ("item:", item)
+                key_value = item[key_name]
+        except KeyError:
+            # Bad structure raise an exception and crash
+            raise UserMessageException(f"Issue with the JSON response for download_info: {DdrInfo.__json_download_info}")
+
+        return key_value
 
     @staticmethod
     def add_themes(json_theme):
@@ -460,13 +509,30 @@ class Utils:
         return
 
     @staticmethod
-    def read_csz_themes(ctl_file, feedback):
+    def read_download_info(ctl_file, feedback):
         """Read the CSZ themes from the service end point"""
 
         url = DdrInfo.get_http_environment()
-        url += "/czs_themes"
+        print (ctl_file.metadata_uuid)
+        url += f"/datasets/metadata_id/{ctl_file.metadata_uuid}"
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+        try:
+            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+            response = requests.get(url, verify=False, headers=headers)
+            ResponseCodes.read_download_info(feedback, response)
+
+        except requests.exceptions.RequestException as e:
+            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+
+    @staticmethod
+    def read_csz_themes(ctl_file, feedback):
+        """Read the CSZ themes from the service end point"""
+
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
+        url += "/czs_themes"
+        headers = {'accept': 'application/json',
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -480,10 +546,10 @@ class Utils:
         """Read the DDR departments that the currently logged in User/Publisher has access to
            from the service endpoint"""
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/ddr_registry_departments"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -496,10 +562,10 @@ class Utils:
     def read_user_email(ctl_file, feedback):
         """Read the User Email from the service end point"""
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/ddr_registry_my_publisher_email"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -512,10 +578,10 @@ class Utils:
     def read_downloads(ctl_file, feedback):
         """Read the  downloads that the currently logged in User/Publisher has access to from the service end point"""
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/ddr_registry_downloads"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -528,10 +594,10 @@ class Utils:
     def read_servers(ctl_file, feedback):
         """Read the Servers from the service end point"""
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/ddr_registry_servers"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
@@ -541,28 +607,36 @@ class Utils:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def create_access_token(username, password, ctl_file, feedback):
-        """Authentication of the username/password in order to get the access token"""
+    def create_access_tokens(username, password, ctl_file, feedback):
 
-#        import web_pdb; web_pdb.set_trace()
-        url = DdrInfo.get_http_environment() + "/login"
-        headers = {"accept": "application/json",
-                   "Content-type": "application/json",
-                   "charset":"utf-8" }
-        Utils.push_info(feedback, "INFO: Authentication to DDR")
-        Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-        Utils.push_info(feedback, f"INFO: HTTP Headers: {headers}")
-        json_doc = { "password": password,
-                     "username": username}
+        def create_one_access_token(api_name):
+            """Authentication of the username/password in order to get the access token"""
 
-        try:
+    #        import web_pdb; web_pdb.set_trace()
+            url = DdrInfo.get_http_environment(api_name) + "/login"
+            headers = {"accept": "application/json",
+                       "Content-type": "application/json",
+                       "charset":"utf-8" }
+            Utils.push_info(feedback, "INFO: Authentication to DDR")
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-            response = requests.post(url, verify=False, headers=headers, json=json_doc)
+            Utils.push_info(feedback, f"INFO: HTTP Headers: {headers}")
+            json_doc = { "password": password,
+                         "username": username}
 
-            ResponseCodes.create_access_token(feedback, response)
+            try:
+                Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
+                response = requests.post(url, verify=False, headers=headers, json=json_doc)
 
-        except requests.exceptions.RequestException as e:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+                ResponseCodes.create_access_token(api_name, feedback, response)
+
+            except requests.exceptions.RequestException as e:
+                raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
+            return
+
+        create_one_access_token(PUBLICATION_API)
+
+        create_one_access_token(REGISTRY_API)
+
         return
 
     @staticmethod
@@ -601,10 +675,6 @@ class Utils:
 
         # Save the name of the actual QGS project file
         ctl_file.src_qgs_project_name = qgs_project.fileName()
-
-        # Create temporary directory
-        ctl_file.control_file_dir = tempfile.mkdtemp(prefix='qgis_')
-        Utils.push_info(feedback, "INFO: Temporary directory created: ", ctl_file.control_file_dir)
 
         # Clear or Close  the actual QGS project
         qgs_project.clear()
@@ -648,16 +718,27 @@ class Utils:
                 Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not spatial ==> transferred")
 
     @staticmethod
-    def copy_download_package_file(ctl_file, feedback):
+    def copy_download_package_file(process_type, ctl_file, feedback):
         """Copy the download package file in the temp repository
         """
 
-        download_package_in = Path(ctl_file.download_package_file)
-        download_package_name = download_package_in.name
-        download_package_out =  os.path.join(ctl_file.control_file_dir, download_package_name)
-        shutil.copy(str(download_package_in), download_package_out)
+        if process_type in [PUBLISH, UPDATE]:
+            # Only copy the download package for publish and update
+            download_package_in = Path(ctl_file.download_package_file)
+            print ("ctl_file.download_package_file:", ctl_file.download_package_file)
+            download_package_name = download_package_in.name
+            print ("download_package_name:", download_package_name)
+            print ("ctl_file.control_file_dir: ", ctl_file.control_file_dir)
+            download_package_out =  os.path.join(ctl_file.control_file_dir, download_package_name)
+            shutil.copy(str(download_package_in), download_package_out)
 
-        Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} in the temp repository {ctl_file.control_file_dir}")
+            Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} in the temp repository {ctl_file.control_file_dir}")
+        else:
+            # Extract the name of the download package file from the values extracted of the end point
+            # ctl_file.download_package_file = DdrInfo.get_download_info('download_folder_name') + ".zip"
+            ctl_file.download_package_file = ""
+
+
 
     @staticmethod
     def set_layer_data_source(ctl_file, feedback):
@@ -708,7 +789,8 @@ class Utils:
             # Add the GPKG file to the ZIP file if vector layers are present
             lst_file_to_zip.append(Path(ctl_file.gpkg_file_name).name)
         if ctl_file.download_package_file is not None:  # The service download is selected
-            lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
+            if ctl_file.download_package_file != "":
+                lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
             
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
         Utils.push_info(feedback, f"INFO: Creating the zip file: {ctl_file.zip_file_name}")
@@ -794,7 +876,9 @@ class ResponseCodes(object):
         status = response.status_code
         if status == 200:
             json_response = response.json()
+            print ("reponse: ", json_response)
             results = json.dumps(json_response, indent=4, ensure_ascii=False)
+            Utils.push_info(feedback, "INFO: ", "200 - Validation is successful")
             Utils.push_info(feedback, "INFO: ", results, pad_with_dot=True)
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
@@ -807,7 +891,7 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, status, description)
 
     @staticmethod
-    def create_access_token(feedback, response):
+    def create_access_token(api_name, feedback, response):
         """This method manages the response codes for the DDR Publisher API Post /login
         To log into the DDR API and get a valid token"""
 
@@ -820,12 +904,12 @@ class ResponseCodes(object):
 
             json_response = response.json()
             # Store the access token in a global variable for access by other entry points
-            LoginToken.set_token(json_response["access_token"])
+            LoginToken.set_token(api_name, json_response["access_token"])
             expires_in = json_response["expires_in"]
             refresh_token = json_response["refresh_token"]
             refresh_expires_in = json_response["refresh_expires_in"]
             token_type = json_response["token_type"]
-            Utils.push_info(feedback, "INFO: ", f"Access token: {LoginToken.get_token(feedback)[0:29]}...")
+            Utils.push_info(feedback, "INFO: ", f"Access token: {LoginToken.get_token(api_name, feedback)[0:29]}...")
             Utils.push_info(feedback, "INFO: ", f"Expire in: {expires_in}")
             Utils.push_info(feedback, "INFO: ", f"Refresh token: {refresh_token[0:29]}...")
             Utils.push_info(feedback, "INFO: ", f"Refresh expire in: {refresh_expires_in}")
@@ -834,6 +918,29 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, 400, "Bad request received on server.")
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Invalid credentials provided.")
+        else:
+            description = http.client.responses[status]
+            ResponseCodes._push_response(feedback, response, status, description)
+
+    @staticmethod
+    def read_download_info(feedback, response):
+        """This method manages the response codes for the DDR Publisher API Get /csz_themes
+        This method extract the themes from the DDR"""
+
+        status = response.status_code
+
+        if status == 200:
+            Utils.push_info(feedback, f"INFO: Status code: {status}")
+            msg = "Reading dataset info based on a given dataset UUID."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            json_response = response.json()
+            DdrInfo.add_download_info(json_response)
+        elif status == 401:
+            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
+        elif status == 403:
+            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
+        elif status == 404:
+            ResponseCodes._push_response(feedback, response, 404, "The requested URI was not found..")
         else:
             description = http.client.responses[status]
             ResponseCodes._push_response(feedback, response, status, description)
@@ -1013,7 +1120,7 @@ class UtilsGui():
         <u>Enter the metadata UUID</u>: Enter the UUID associated to this UUID.
         <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip ship (CZS)
         <u>Select the download info ID</u>: Download ID info.
-        <u>Select the QGIS server</u>: Name of the QGIS server used for the publication.
+        <u>Select the web server</u>: Name of the QGIS server used for the publication.
         <u>Select the download package file</u>: Select the download package file to upload on the FTP. (optional)
         <u>Select a core subject term</u>: Select a core subject term, mandatory for uploading a download package otherwise the parameter is optional.
         <b>Advanced Parameters</b>
@@ -1037,7 +1144,7 @@ class UtilsGui():
 
         parameter = (QgsProcessingParameterBoolean(
             name='SERVICE_WEB',
-            description=self.tr(f"Check if you choose to {action} a web service"),
+            description=self.tr(f"{action} a web service"),
             defaultValue=False,
             optional=False))
         parameter.setHelp(f"Check the box if you which to {action} a web service and fill the section 'Web service parameters'")
@@ -1050,7 +1157,7 @@ class UtilsGui():
 
         parameter = (QgsProcessingParameterBoolean(
             name='SERVICE_DOWNLOAD',
-            description=self.tr(f"Check if you choose to {action} a download service"),
+            description=self.tr(f"{action} a download service"),
             defaultValue=False,
             optional=False))
         parameter.setHelp(f"Check the box if you which to {action} a download service and fill the section 'Download service parameters'")
@@ -1152,13 +1259,27 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
+    def add_validate(self, action):
+        """Add Validate check box"""
+
+
+        parameter = (QgsProcessingParameterBoolean(
+            name='Validate',
+            description=self.tr(f"Only validate the {action} action"),
+            defaultValue=False,
+            optional=False))
+        parameter.setHelp(f"In validate mode, the input parameters are validated and no action is performed ")
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
     def add_qgs_server_id(self, message):
         """Add Select server menu"""
 
         lst_qgs_server_id = DdrInfo.get_servers_lst()
         parameter = QgsProcessingParameterEnum(
             name='QGS_SERVER_ID',
-            description=self.tr('Select the QGIS server'),
+            description=self.tr('Select the web server'),
             options=lst_qgs_server_id,
             defaultValue="DDR_QGS1",
             usesStaticStrings=True,
@@ -1213,10 +1334,10 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
-    def read_parameters(self, ctl_file, parameters, context, feedback):
+    def read_parameters(self, ctl_file, parameters, context):
 
-        ctl_file.service_web = self.parameterAsString(parameters, 'SERVICE_WEB', context)
-        ctl_file.service_download = self.parameterAsString(parameters, 'SERVICE_DOWNLOAD', context)
+        ctl_file.service_web = self.parameterAsBool(parameters, 'SERVICE_WEB', context)
+        ctl_file.service_download = self.parameterAsBool(parameters, 'SERVICE_DOWNLOAD', context)
         ctl_file.department = self.parameterAsString(parameters, 'DEPARTMENT', context)
         ctl_file.download_info_id = self.parameterAsString(parameters, 'DOWNLOAD_INFO_ID', context)
         ctl_file.metadata_uuid = self.parameterAsString(parameters, 'METADATA_UUID', context)
@@ -1226,7 +1347,7 @@ class UtilsGui():
         ctl_file.csz_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
         ctl_file.qgis_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
         ctl_file.qgis_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
-        ctl_file.validation_type = self.parameterAsString(parameters, 'VALIDATION_TYPE', context)
+        ctl_file.validate = self.parameterAsBool(parameters, 'VALIDATE', context)
         ctl_file.core_subject_term = self.parameterAsString(parameters, 'CORE_SUBJECT_TERM', context)
         ctl_file.download_package_file = self.parameterAsString(parameters, 'DOWNLOAD_PACKAGE', context)
         if ctl_file.download_package_file =='':
@@ -1270,7 +1391,20 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     ctl_file = ControlFile()
 
     # Extract the parameters
-    self.read_parameters(ctl_file, parameters, context, feedback)
+    UtilsGui.read_parameters(self, ctl_file, parameters, context)
+
+    print (process_type, UNPUBLISH)
+    if process_type == UNPUBLISH:
+        # Extract specific information related to Unpublish a Web service
+
+        if ctl_file.service_web:
+            pass
+#        if ctl_file.service_download:
+#            Utils.read_download_info(ctl_file, feedback)
+
+    # Create temporary directory
+    ctl_file.control_file_dir = tempfile.mkdtemp(prefix='qgis_')
+    Utils.push_info(feedback, "INFO: Temporary directory created: ", ctl_file.control_file_dir)
 
     if ctl_file.service_web:  # if web_service is selected
         # Copy the QGIS project file (.qgs)
@@ -1283,8 +1417,9 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
         Utils.set_layer_data_source(ctl_file, feedback)
 
     if ctl_file.service_download:  # if download service is selected
+        print("Service download in:", ctl_file.service_download)
         # Copy the download package file in temp repository
-        Utils.copy_download_package_file(ctl_file, feedback)
+        Utils.copy_download_package_file(process_type, ctl_file, feedback)
 
     # Creation of the JSON control file
     Utils.create_json_control_file(ctl_file, feedback)
@@ -1293,22 +1428,24 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     Utils.create_zip_file(ctl_file, feedback)
 
     # Validate the project file
-    if process_type == "VALIDATE":
-        DdrValidate.validate_project_file(ctl_file, parameters, context, feedback)
-    elif process_type == "PUBLISH":
+    if ctl_file.validate:
+        # The action is executed in validate mode
+        DdrValidateService.validate_project_file(ctl_file, process_type, parameters, context, feedback)
+    elif process_type == PUBLISH:
         # Publish the project file
-        DdrPublish.publish_project_file(ctl_file, parameters, context, feedback)
-    elif process_type == "UNPUBLISH":
+        DdrPublishService.publish_project_file(ctl_file, parameters, context, feedback)
+    elif process_type == UNPUBLISH:
         # Unpublish the project file
-        DdrUnpublish.unpublish_project_file(ctl_file, parameters, context, feedback)
+        DdrUnpublishService.unpublish_project_file(ctl_file, parameters, context, feedback)
     elif process_type == "UPDATE":
         # Update the project file
-        DdrUpdate.update_project_file(ctl_file, parameters, context, feedback)
+        DdrUpdateService.update_project_file(ctl_file, parameters, context, feedback)
     else:
         raise UserMessageException(f"Internal error. Unknown Process Type: {process_type}")
 
-    # Restoring original .qgs project file
-    Utils.restore_original_project_file(ctl_file, feedback)
+    if ctl_file.service_web:  # if web_service is selected
+        # Restoring original .qgs project file
+        Utils.restore_original_project_file(ctl_file, feedback)
 
     # Deleting the temporary directory and files
     # import web_pdb; web_pdb.set_trace()
@@ -1355,7 +1492,7 @@ class DdrPublishService(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -1387,12 +1524,11 @@ class DdrPublishService(QgsProcessingAlgorithm):
         """
 
         # General parameters
-        action = "publish"
+        action = "Publish"
         UtilsGui.add_department(self)
         UtilsGui.add_uuid(self)
         UtilsGui.add_web_service(self, action)
         UtilsGui.add_download_service(self, action)
-
 
         # Web service parameters
         message = "Mandatory if you choose to publish a web service"
@@ -1408,33 +1544,81 @@ class DdrPublishService(QgsProcessingAlgorithm):
         UtilsGui.add_download_info(self, message)
 
         # Advanced parameters
+        action = "publish"
         UtilsGui.add_email(self)
         UtilsGui.add_keep_files(self)
+        UtilsGui.add_validate(self, action)
 
 
 
-    def read_parameters(self, ctl_file, parameters, context, feedback):
-        """Reads the different parameters in the form and stores the content in the data structure"""
-
-        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
+#    def read_parameters(self, ctl_file, parameters, context, feedback):
+#        """Reads the different parameters in the form and stores the content in the data structure"""
+#
+#        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
+#        print ("read parameters")
+#        0/0
 
         return
 
-#    def checkParameterValues(self, parameters, context):
-#        """Check if the selection of the input parameters is valid"""
-#
-#        print ("coco le clown3")
-#
-#        return (False, "Il y a un problème \nCoco le clown")
+    def checkParameterValues(self, parameters, context):
+        """Check if the selection of the input parameters is valid"""
+
+        # Create the control file data structure
+        control_file = ControlFile()
+
+        UtilsGui.read_parameters(self, control_file, parameters, context )
+
+        # At least Web Service or Download Service check box must be selected
+        if not control_file.service_web and not control_file.service_download:
+            message = "You must at least select one of the following service:\n"
+            message += "   - Publish web service\n"
+            message += "   - Publish download service"
+            return (False, message)
+
+        # If Web service is selected some web parameters must be selected
+        if control_file.service_web:
+            if control_file.qgis_project_file_en == "" or \
+                control_file.qgis_project_file_fr == "" or \
+                control_file.qgis_server_id == "":
+                message = "When selecting Publish web service, you must fill the following parameters: \n"
+                message += "   - Select the English QGIS project file \n"
+                message += "   - Select the French QGIS project file \n"
+                message += "   - Select the web server"
+                return (False, message)
+        else:
+            if control_file.qgis_project_file_en != "" or \
+                control_file.qgis_project_file_fr != "":
+                message = "Publish a web service is not selected, the following parameters must be empty: \n"
+                message += "   - Select the English QGIS project file \n"
+                message += "   - Select the French QGIS project file"
+                return (False, message)
+
+        # If Download service is selected some download parameters must be selected
+        if control_file.service_download:
+            if control_file.download_package_file== "" or \
+                    control_file.core_subject_term == "" or \
+                    control_file.download_info_id == "":
+                message = "When selecting publish download service, you must fill the following parameters: \n"
+                message += "   - Select the download package file \n"
+                message += "   - Select the appropriate core subject term \n"
+                message += "   - Select the download server"
+                return (False, message)
+        else:
+            if control_file.download_package_file!= "":
+                message = "Publish a download service is not selected, the following parameter must be empty: \n"
+                message += "   - Select the download package file"
+                return (False, message)
+
+        return (True, "")
 
     @staticmethod
     def publish_project_file(ctl_file, parameters, context, feedback):
         """"""
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/publish"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
 
         Utils.push_info(feedback, f"INFO: Publishing to DDR")
@@ -1502,7 +1686,7 @@ class DdrUpdateService(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -1623,8 +1807,10 @@ class DdrValidateService(QgsProcessingAlgorithm):
         return 'Management (second step)'
 
     def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -1672,22 +1858,25 @@ class DdrValidateService(QgsProcessingAlgorithm):
         return
 
     @staticmethod
-    def validate_project_file(ctl_file, parameters, context, feedback):
+    def validate_project_file(ctl_file, process_type, parameters, context, feedback):
         """"""
 
 #        import web_pdb; web_pdb.set_trace()
-        url = DdrInfo.get_http_environment()
+        print ("Process type:", process_type.lower())
+        process_type = "publish"
+        url = DdrInfo.get_http_environment(PUBLICATION_API)
         url += "/validate"
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)
+                   'Authorization': 'Bearer ' + LoginToken.get_token(PUBLICATION_API, feedback)
                    }
         data = {
-            'operation': ctl_file.validation_type.lower()
+            'operation': process_type.lower()
         }
         files = {
             'zip_file': open(ctl_file.zip_file_name, 'rb')
         }
+        print (headers)
 
         Utils.push_info(feedback, "INFO: Validating project")
         Utils.push_info(feedback, "INFO: HTTP Headers: ", headers)
@@ -1750,8 +1939,10 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         return 'Management (second step)'
 
     def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -1776,31 +1967,47 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
-        UtilsGui.add_environment(self)
-        UtilsGui.add_qgis_file(self, "")
+        # General parameters
+        action = 'Unpublish'
         UtilsGui.add_department(self)
+        UtilsGui.add_uuid(self)
+        UtilsGui.add_web_service(self, action)
+        UtilsGui.add_download_service(self, action)
+
+#        # Web service parameters
+#        message = "Mandatory if you choose to unpublish a web service"
+#        message_opt = "Optional even if you choose to upublish a web service"
+#        UtilsGui.add_qgis_file(self, message)
+#        UtilsGui.add_csz_themes(self, message_opt)
+#        UtilsGui.add_qgs_server_id(self, message)
+#
+#        # Download service parameters
+#        message = "Mandatory if you choose to unpublish a download service"
+#        UtilsGui.add_download_package(self, message)
+#        UtilsGui.add_core_subject_term(self, message)
+#        UtilsGui.add_download_info(self, message)
+
+        # Advanced parameters
+        action = "unpublish"
         UtilsGui.add_email(self)
-        UtilsGui.add_download_info(self, "")
-#        UtilsGui.add_qgs_server_id(self)
         UtilsGui.add_keep_files(self)
-        UtilsGui.add_download_package(self, "")
-        UtilsGui.add_core_subject_term(self, "")
+        UtilsGui.add_validate(self, action)
 
-    def read_parameters(self, ctl_file, parameters, context, feedback):
-        """Reads the different parameters in the form and stores the content in the data structure"""
-
-        UtilsGui.read_parameters(self, ctl_file, parameters, context, feedback)
-
-        return
+#    def read_parameters(self, ctl_file, parameters, context, feedback):
+#        """Reads the different parameters in the form and stores the content in the data structure"""
+#
+#        UtilsGui.read_parameters(self, ctl_file, parameters, context)
+#
+#        return
 
     @staticmethod
     def unpublish_project_file(ctl_file, parameters, context, feedback):
         """Unpublish a QGIS project file """
 
-        url = DdrInfo.get_http_environment()
+        url = DdrInfo.get_http_environment(REGISTRY_API)
         url += "/unpublish"
         headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+                   'Authorization': 'Bearer ' + LoginToken.get_token(REGISTRY_API, feedback)}
         files = {'zip_file': open(ctl_file.zip_file_name, 'rb')}
         Utils.push_info(feedback, f"INFO: Unpublishing data from the DDR")
         Utils.push_info(feedback, f"INFO: HTTP Delete Request: {url}")
@@ -1816,11 +2023,29 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
 
         return
 
+    def checkParameterValues(self, parameters, context):
+        """Check if the selection of the input parameters is valid
+        """
+
+        # Create the control file data structure
+        control_file = ControlFile()
+
+        UtilsGui.read_parameters(self, control_file, parameters, context )
+
+        # At least Web Service or Download Service check box must be selected
+        if not control_file.service_web and not control_file.service_download:
+            message = "You must at least select one of the following service:\n"
+            message += "   - Unpublish web service\n"
+            message += "   - Unpublish download service"
+            return False, message
+
+        return True, ""
+
     def processAlgorithm(self, parameters, context, feedback):
         """Main method that extract parameters and call Simplify algorithm.
         """
         try:
-            dispatch_algorithm(self, "UNPUBLISH", parameters, context, feedback)
+            dispatch_algorithm(self, UNPUBLISH, parameters, context, feedback)
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Unpublish process")
             Utils.push_info(feedback, f"ERROR: {str(e)}")
@@ -1847,6 +2072,12 @@ class DdrLogin(QgsProcessingAlgorithm):
         """
         return 'login'
 
+    def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
+
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
+
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
         """
@@ -1860,11 +2091,13 @@ class DdrLogin(QgsProcessingAlgorithm):
     def groupId(self):  # pylint: disable=no-self-use
         """Returns the unique ID of the group this algorithm belongs to.
         """
-        return 'Authentication (first step)'
 
-    def flags(self):
+        return ''
+#        return 'Authentication (first step)'
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
+#    def flags(self):
+#
+#        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -1898,6 +2131,7 @@ class DdrLogin(QgsProcessingAlgorithm):
 #        import web_pdb; web_pdb.set_trace()
         auth_method = self.parameterAsString(parameters, 'AUTHENTICATION', context)
         environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
+        print ("Environment: ", environment)
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
         DdrInfo.add_environment(environment)
 
@@ -1975,7 +2209,8 @@ class DdrLogin(QgsProcessingAlgorithm):
             ctl_file = ControlFile()
             (username, password) = self.read_parameters(ctl_file, parameters, context, feedback)
 
-            Utils.create_access_token(username, password, ctl_file, feedback)
+            # Create the access tokens needed for the API call
+            Utils.create_access_tokens(username, password, ctl_file, feedback)
 
             Utils.read_csz_themes(ctl_file, feedback)
             Utils.read_ddr_departments(ctl_file, feedback)
