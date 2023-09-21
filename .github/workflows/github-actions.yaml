@@ -16,24 +16,54 @@ jobs:
         docker_tags: [latest]
         #docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
+    name: "mockoon-cli"
+    description: "Run Mockoon CLI as a GitHub Action"
+    branding:
+      color: "white"
+    inputs:
+      version:
+        description: "Mockoon CLI version to pull from NPM"
+        required: true
+        default: "latest"
+      data-file:
+        description: "Mockoon CLI data file (local file or URL)"
+        required: true
+      port:
+        description: "Mockoon CLI port"
+        required: true
+        default: "3000"
+    runs:
+      using: "composite"
+      steps:
+        - name: "Run Mockoon CLI"
+          shell: bash
+          # keep --daemon-off to ensure compatiblity with <4.0.0
+          # use & to run in background for >4.0.0
+          run: |
+            npm install -g @mockoon/cli@${{ inputs.version }}
+            mockoon-cli start --daemon-off --data ${{ inputs.data-file }} --port ${{ inputs.port }} &
 
-    - name: Install Mockoon
-      run: npm install -g @mockoon/cli
+
+
+    #steps:
+    #- name: Checkout repository
+    #  uses: actions/checkout@v2
+
+    #- name: Set up Node.js
+    #  uses: actions/setup-node@v2
+
+    #- name: Install Mockoon
+    #  run: npm install -g @mockoon/cli
     
-    - name: Start Mockoon server
-      run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
+    #- name: Start Mockoon server
+    #  run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
       
-    - name: Install ArgoCD CLI and test Mockoon server
-      id: install_argocd
-      shell: bash
-      run: |
-          curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
+    #- name: Install ArgoCD CLI and test Mockoon server
+    #  id: install_argocd
+    #  shell: bash
+    #  run: |
+    #      curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
           
     # Pull and run the QGIS Docker environment
     - name: Docker pull and create qgis-testing-environment
