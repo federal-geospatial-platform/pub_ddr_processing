@@ -17,32 +17,21 @@ jobs:
         #docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
 
 
-    name: "mockoon-cli"
-    description: "Run Mockoon CLI as a GitHub Action"
-    branding:
-      color: "white"
-    inputs:
-      version:
-        description: "Mockoon CLI version to pull from NPM"
-        required: true
-        default: "latest"
-      data-file:
-        description: "Mockoon CLI data file (local file or URL)"
-        required: true
-      port:
-        description: "Mockoon CLI port"
-        required: true
-        default: "3000"
-    runs:
-      using: "composite"
-      steps:
-        - name: "Run Mockoon CLI"
-          shell: bash
-          # keep --daemon-off to ensure compatiblity with <4.0.0
-          # use & to run in background for >4.0.0
-          run: |
-            npm install -g @mockoon/cli@${{ inputs.version }}
-            mockoon-cli start --daemon-off --data ${{ inputs.data-file }} --port ${{ inputs.port }} &
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Mockoon CLI
+        uses: mockoon/cli-action@v1
+        with:
+          # Mockoon CLI version, default to 'latest'
+          version: "latest"
+          # Mockoon local data file or URL
+          data-file: "./mockoon-data.json"
+          # port, default to 3000
+          port: 3000
+      - name: Make test call
+        run: curl -X GET http://localhost:3000/endpoint
+
 
 
 
