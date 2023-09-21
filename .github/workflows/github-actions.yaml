@@ -1,6 +1,6 @@
 name: Mockoon CLI demo
 
-on: [push]n
+on: [push]
 
 jobs:
   mockoon-cli-demo:
