@@ -1,4 +1,4 @@
-name: Mockoon CLI demo
+name: Test ddr_
 
 on: [push]
 
@@ -19,3 +19,34 @@ jobs:
       - name: Make test call
         run: |
             curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
+
+      - name: Docker pull and create qgis-testing-environment
+        run: |
+          docker pull "$DOCKER_IMAGE":${{ matrix.docker_tags }}
+          docker run -d --name qgis-testing-environment -v "$GITHUB_WORKSPACE":/tests_directory -e DISPLAY=:99 "$DOCKER_IMAGE":${{ matrix.docker_tags }}
+
+      # Exec the different commands in the docker environment
+      - name: Docker set up QGIS
+        run: |
+          # Install and start Mockoon
+          docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli"
+          docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
+
+          # Setup Docker QGIS environment
+          docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
+          docker exec qgis-testing-environment sh -c "export XDG_RUNTIME_DIR=/tests_directory"
+          # docker exec qgis-testing-environment sh -c "export RUNLEVEL=3"
+
+          # Patch the QGIS user database for the login management and disable the output error
+          set +e
+          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+          # Setup the pub_ddr_processing plugin and the directory
+          docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
+          docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
+          docker exec qgis-testing-environment sh -c "ln -s /tests_directory /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
+
+          # Excecute pub_ddr_processing Plugin in batch mode
+          docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:login --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --AUTHENTICATION=p3m9sdd --ENVIRONMENT=Test"
+          #docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:publish --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7030 --QGIS_FILE_EN='test5_en.qgs' --QGIS_FILE_FR='dummy\test5_fr.qgs' --DEPARTMENT=nrcan --METADATA_UUID=5c8559e4-ee59-47cc-8572-637c40f9aebb --EMAIL='foo.bar@nrcan-rncan.gc.ca' --DOWNLOAD_INFO_ID=DDR_DOWNLOAD1 --QGS_SERVER_ID=DDR_QGS_Internal --KEEP_FILES=No"
