@@ -1,9 +1,15 @@
-name: Test ddr_
+name: Test ddr_processing
 
 on: [push]
 
+env:
+  # Plugin name/directory where the code for the plugin is stored
+  PLUGIN_NAME: pub_ddr_processing
+  # Docker settings
+  DOCKER_IMAGE: qgis/qgis
+
 jobs:
-  mockoon-cli-demo:
+  ddr_processing_plugin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
