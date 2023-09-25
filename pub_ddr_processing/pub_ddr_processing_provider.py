@@ -26,7 +26,7 @@ __copyright__ = '(C) 2021 by Daniel Pilon'
 __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
 #from .ddr_algorithm import DdrPublishService, DdrValidateService, DdrUpdateService, DdrUnpublishService, DdrLogin
-from .ddr_algorithm import DdrPublishService, DdrUpdateService, DdrUnpublishService, DdrLogin
+from .ddr_algorithm import DdrPublishService, DdrUpdateService, DdrUnpublishService, DdrLogin, DdrLoginBatch
 import os
 
 import inspect
@@ -53,9 +53,9 @@ class PubDdrProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(DdrLogin())
+        self.addAlgorithm(DdrLoginBatch())
         self.addAlgorithm(DdrPublishService())
         self.addAlgorithm(DdrUpdateService())
-#        self.addAlgorithm(DdrValidateService())
         self.addAlgorithm(DdrUnpublishService())
 
         # add additional algorithms here

@@ -80,12 +80,14 @@ class ControlFile:
     metadata_uuid: str = None
     out_qgs_project_file_en: str = None  # Name out the output English project file
     out_qgs_project_file_fr: str = None  # Name out the output English project file
-    qgs_project_file_en: str = None     # Name of the input English QGIS project file
-    qgs_project_file_fr: str = None     # Name of the input French QGIS project file
+    password: str = None                 # Login password
+    qgs_project_file_en: str = None      # Name of the input English QGIS project file
+    qgs_project_file_fr: str = None      # Name of the input French QGIS project file
     qgs_server_id: str = None
     service_web: bool = None             # Flag for publishing a web service
     service_download: bool = None        # Flag for publishing a download service
     src_qgs_project_name = None          # Name of the actual project file name
+    username: str = None                 # Login username
     validate: str = None                 # Is the action in validate mode
     zip_file_name: str = None            # Name of the zip file
 
@@ -591,6 +593,8 @@ class Utils:
         """
 
         #import web_pdb; web_pdb.set_trace()
+        Utils.push_info(feedback, f"INFO: Username: {username}")
+        Utils.push_info(feedback, f"INFO: Password: -X-X-X-X-X-X-")
         url = DdrInfo.get_http_environment() + "/login"
         headers = {"accept": "application/json",
                    "Content-type": "application/json",
@@ -1278,6 +1282,22 @@ class UtilsGui():
             description=self.tr('Enter the metadata UUID')))
 
     @staticmethod
+    def add_username_password(self):
+        """Add a username/password menu"""
+
+        self.addParameter(QgsProcessingParameterString(
+            name="USERNAME",
+            defaultValue="",
+            optional=False,
+            description=self.tr('Enter your username')))
+
+        self.addParameter(QgsProcessingParameterString(
+            name="PASSWORD",
+            defaultValue="",
+            optional=False,
+            description=self.tr('Enter your password <b>(will display in clear)</b>')))
+
+    @staticmethod
     def add_download_info(self, message):
         """Add Select download info menu"""
 
@@ -1400,6 +1420,8 @@ class UtilsGui():
         ctl_file.validate = self.parameterAsBool(parameters, 'VALIDATE', context)
         ctl_file.core_subject_term = self.parameterAsString(parameters, 'CORE_SUBJECT_TERM', context)
         ctl_file.download_package_file = self.parameterAsString(parameters, 'DOWNLOAD_PACKAGE', context)
+        ctl_file.username = self.parameterAsString(parameters, 'USERNAME', context)
+        ctl_file.password = self.parameterAsString(parameters, 'PASSWORD', context)
 
     @staticmethod
     def add_download_package(self, message):
@@ -2046,11 +2068,6 @@ class DdrLogin(QgsProcessingAlgorithm):
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
         DdrInfo.add_environment(environment)
 
-        # Enable the extraction of the password when working in the testing or mocking environment
-        if environment == "Testing":
-            authMgr = QgsApplication.authManager()
-            authMgr.setMasterPassword("MasterPass123$", verify=True)
-
         # Get the application's authentication manager
         auth_mgr = QgsApplication.authManager()
 
@@ -2071,8 +2088,136 @@ class DdrLogin(QgsProcessingAlgorithm):
             raise UserMessageException("Unable to extract username/password from QGIS "
                                        "authentication system")
 
-        Utils.push_info(feedback, f"INFO: Username: {username}")
-        Utils.push_info(feedback, f"INFO: Username: {password}")
+        return username, password
+
+    def processAlgorithm(self, parameters, context, feedback):
+        """Main method that extract parameters and call Simplify algorithm.
+        """
+
+        try:
+            # Create the control file data structure
+            ctl_file = ControlFile()
+            (username, password) = self.read_parameters(ctl_file, parameters, context, feedback)
+
+            # Create the access tokens needed for the API call
+            Utils.create_access_tokens(username, password, ctl_file, feedback)
+
+            Utils.read_csz_themes(ctl_file, feedback)
+            Utils.read_ddr_departments(ctl_file, feedback)
+            Utils.read_user_email(ctl_file, feedback)
+#            import web_pdb; web_pdb.set_trace()
+            Utils.read_downloads(ctl_file, feedback)
+            Utils.read_servers(ctl_file, feedback)
+
+        except UserMessageException as e:
+            Utils.push_info(feedback, f"ERROR: Login process")
+            Utils.push_info(feedback, f"ERROR: {str(e)}")
+
+        return {}
+
+
+class DdrLoginBatch(QgsProcessingAlgorithm):
+    """Main class defining the DDR Login in batch algorithm as a QGIS processing algorithm.
+    """
+
+    def tr(self, string):  # pylint: disable=no-self-use
+        """Returns a translatable string with the self.tr() function.
+        """
+        return QCoreApplication.translate('Processing', string)
+
+    def createInstance(self):  # pylint: disable=no-self-use
+        """Returns a new copy of the algorithm.
+        """
+        return DdrLoginBatch()
+
+    def name(self):  # pylint: disable=no-self-use
+        """Returns the unique algorithm name.
+        """
+        return 'login_batch'
+
+    def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
+
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch
+
+    def displayName(self):  # pylint: disable=no-self-use
+        """Returns the translated algorithm name.
+        """
+        return self.tr('Login (Batch)')
+
+    def group(self):
+        """Returns the name of the group this algorithm belongs to.
+        """
+        return self.tr(self.groupId())
+
+    def groupId(self):  # pylint: disable=no-self-use
+        """Returns the unique ID of the group this algorithm belongs to.
+        """
+
+        return 'Authentication (first step)'
+
+    def shortHelpString(self):
+        """Returns a localised short help string for the algorithm.
+        """
+        help_str = """This processing plugin logs into the DDR repository server. The authentication operation is \
+        mandatory before  doing any management operation: publish, update, unpublish or validate. 
+        """
+
+        help_str = help_str + UtilsGui.HELP_USAGE
+
+        return self.tr(help_str)
+
+    def icon(self):  # pylint: disable=no-self-use
+        """Define the logo of the algorithm.
+        """
+
+        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
+        return icon
+
+    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
+        """Define the inputs and outputs of the algorithm.
+        """
+
+        UtilsGui.add_username_password(self)
+        UtilsGui.add_environment(self)
+
+    def read_parameters(self, ctl_file, parameters, context, feedback):
+        """Reads the different parameters in the form and stores the content in the data structure"""
+
+#        import web_pdb; web_pdb.set_trace()
+        username = self.parameterAsString(parameters, 'USERNAME', context)
+        password = self.parameterAsString(parameters, 'PASSWORD', context)
+        environment = self.parameterAsString(parameters, 'ENVIRONMENT', context)
+        Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
+        DdrInfo.add_environment(environment)
+
+#        # Enable the extraction of the password when working in the testing or mocking environment
+#        if environment == "Testing":
+#            authMgr = QgsApplication.authManager()
+#            authMgr.setMasterPassword("MasterPass123$", verify=True)
+#
+#        # Get the application's authentication manager
+#        auth_mgr = QgsApplication.authManager()
+#
+#        # Create an empty QgsAuthMethodConfig object
+#        auth_cfg = QgsAuthMethodConfig()
+#
+#        # Load config from manager to the new config instance and decrypt sensitive data
+#        auth_mgr.loadAuthenticationConfig(auth_method, auth_cfg, True)
+#
+#        # Get the configuration information (including username and password)
+#        auth_cfg.configMap()
+#        auth_info = auth_cfg.configMap()
+#
+#        try:
+#            username = auth_info['username']
+#            password = auth_info['password']
+#        except KeyError:
+#            raise UserMessageException("Unable to extract username/password from QGIS "
+#                                       "authentication system")
+
         return username, password
 
     def processAlgorithm(self, parameters, context, feedback):
