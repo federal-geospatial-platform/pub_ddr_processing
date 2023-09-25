@@ -18,8 +18,8 @@ jobs:
     #    #docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
 
     steps:
+      - uses: actions/checkout@v3
       - name: Run Mockoon CLI
-        uses: actions/checkout@v3
         uses: mockoon/cli-action@v1
         with:
           # Mockoon CLI version, default to 'latest'
