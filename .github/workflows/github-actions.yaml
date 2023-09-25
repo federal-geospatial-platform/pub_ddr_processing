@@ -67,6 +67,6 @@ jobs:
           curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
           #docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli@latest"
           #
-          docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli"
+          docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli@latest"
           docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
           docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Unpublish_service.model3 --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --enter_the_metadata_uuid=ddd --enter_your_email_address='dd@dd.com' --enter_your_password='tPNRM%?eWN6E3io6' --enter_your_username=daniel-pilon --environment=Test --keep_temporary_files=1 --only_validate_the_unpublish_action=true --select_the_department=nrcan --unpublish_a_download_service=true --unpublish_a_web_service=false"
