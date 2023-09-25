@@ -9,7 +9,7 @@ env:
   DOCKER_IMAGE: qgis/qgis
   # Plugin parameters
   metadata_uuid: 85ba1e14-0941-4f47-9747-9b1098b625e3
-  email_address:'foo@foo.com'
+  email_address: 'foo@foo.com'
   password: LeClown
   username: Coco
   environment: Test
