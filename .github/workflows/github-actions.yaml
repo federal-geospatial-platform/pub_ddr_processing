@@ -117,25 +117,25 @@ jobs:
                                                   --unpublish_a_download_service=true \
                                                   --unpublish_a_web_service=false"
 
-          #docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Publish_service.model3 \
-          #                                        --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
-          #                                        --enter_the_metadata_uuid='metadata_uuid' \
-          #                                        --enter_your_email_address='email_address' \
-          #                                        --enter_your_password='password' \
-          #                                        --enter_your_username=aa \
-          #                                        --environment='environement' \
-          #                                        --keep_temporary_files=1 \
-          #                                        --only_validate_the_publish_action=true \
-          #                                        --publish_a_download_service=true \
-          #                                        --publish_a_web_service=true \
-          #                                        --select_core_subject_term= 'core_subject_term' \
-          #                                        --select_download_package= 'download_package' \
-          #                                        --select_download_server= 'download_server' \
-          #                                        --select_en_qgis_project='en_qgis_project' \
-          #                                        --select_fr_qgis_project= 'fr_qgis_project' \
-          #                                        --select_qgis_server= 'qgis_server' \
-          #                                        --select_the_czs= 'select_the_czs' \
-          #                                        --select_the_department= 'department'"
+          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Publish_service.model3 \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid=$metadata_uuid \
+                                                  --enter_your_email_address=$email_address \
+                                                  --enter_your_password=$password \
+                                                  --enter_your_username=$username \
+                                                  --environment=$environement \
+                                                  --keep_temporary_files=1 \
+                                                  --only_validate_the_publish_action=true \
+                                                  --publish_a_download_service=true \
+                                                  --publish_a_web_service=true \
+                                                  --select_core_subject_term=$core_subject_term \
+                                                  --select_download_package=$download_package \
+                                                  --select_download_server=$download_server \
+                                                  --select_en_qgis_project=$en_qgis_project \
+                                                  --select_fr_qgis_project=$fr_qgis_project \
+                                                  --select_qgis_server=$qgis_server \
+                                                  --select_the_czs=$select_the_czs \
+                                                  --select_the_department=$department"
 
 
 
