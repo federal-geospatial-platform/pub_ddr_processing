@@ -15,13 +15,18 @@ env:
   environment: Test
   temporary_files: 1
   department: nrcan
-  en_qgis_project: /tests_directory/pub_ddr_processing/test_en.qgs
-  fr_qgis_project: /tests_directory/pub_ddr_processing/test_fr.qgs
-  download_package: /tests_directory/pub_ddr_processing/radarsat_constellation_mission_plan.zip
+  en_qgis_project: /tests_directory/pub_ddr_processing/model/test_en.qgs
+  fr_qgis_project: /tests_directory/pub_ddr_processing/model/test_fr.qgs
+  download_package: /tests_directory/pub_ddr_processing/model/radarsat_constellation_mission_plan.zip
   qgis_server: QGIS_Server
   download_server: Download_Server
   select_the_czs: Agriculture
   core_subject_term: Science
+  # QGIS models
+  publish_service: /tests_directory/pub_ddr_processing/model/Publish_service
+  update_service: /tests_directory/pub_ddr_processing/model/Update_service
+  unpublish_service: /tests_directory/pub_ddr_processing/model/Unpublish_service
+
 
 
 jobs:
@@ -83,7 +88,7 @@ jobs:
           #core_subject_term: Science
 
           # Execute the unpublish service in the docker with the mockoon API
-          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Unpublish_service.model3 \
+          docker exec qgis-testing-environment sh -c "qgis_process run $unpublish_service \
                                                   --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
                                                   --enter_the_metadata_uuid=$metadata_uuid \
                                                   --enter_your_email_address=$email_address$ \
@@ -97,7 +102,7 @@ jobs:
                                                   --unpublish_a_web_service=false"
 
           # Execute the publish service in the docker with the mockoon API
-          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Publish_service.model3 \
+          docker exec qgis-testing-environment sh -c "qgis_process run $publish_service \
                                                   --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
                                                   --enter_the_metadata_uuid=$metadata_uuid \
                                                   --enter_your_email_address=$email_address \
@@ -118,7 +123,7 @@ jobs:
                                                   --select_the_department=$department"
 
             # Execute the update service in the docker with the mockoon API
-            docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Update_service.model3 \
+            docker exec qgis-testing-environment sh -c "qgis_process run $update_service \
                                                   --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
                                                   --enter_the_metadata_uuid=$metadata_uuid \
                                                   --enter_your_email_address=$email_address \
