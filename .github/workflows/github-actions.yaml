@@ -117,7 +117,6 @@ jobs:
                                                   --unpublish_a_download_service=true \
                                                   --unpublish_a_web_service=false"
 
-
           docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Publish_service.model3 \
                                                   --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
                                                   --enter_the_metadata_uuid='metadata_uuid' \
@@ -136,7 +135,7 @@ jobs:
                                                   --select_fr_qgis_project= 'fr_qgis_project' \
                                                   --select_qgis_server= 'qgis_server' \
                                                   --select_the_czs= 'select_the_czs' \
-                                                  --select_the_department= 'department'
+                                                  --select_the_department= 'department'"
 
 
 
