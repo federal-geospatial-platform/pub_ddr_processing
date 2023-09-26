@@ -123,7 +123,7 @@ jobs:
                                                   --enter_your_email_address=$email_address \
                                                   --enter_your_password=$password \
                                                   --enter_your_username=$username \
-                                                  --environment=$environement \
+                                                  --environment=$environment \
                                                   --keep_temporary_files=1 \
                                                   --only_validate_the_publish_action=true \
                                                   --publish_a_download_service=true \
