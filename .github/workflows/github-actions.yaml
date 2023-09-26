@@ -23,9 +23,9 @@ env:
   select_the_czs: Agriculture
   core_subject_term: Science
   # QGIS models
-  publish_service: /tests_directory/pub_ddr_processing/model/Publish_service
-  update_service: /tests_directory/pub_ddr_processing/model/Update_service
-  unpublish_service: /tests_directory/pub_ddr_processing/model/Unpublish_service
+  publish_service: /tests_directory/pub_ddr_processing/model/Publish_service.model3
+  update_service: /tests_directory/pub_ddr_processing/model/Update_service.model3
+  unpublish_service: /tests_directory/pub_ddr_processing/model/Unpublish_service.model3
 
 
 
