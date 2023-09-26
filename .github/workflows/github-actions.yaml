@@ -93,7 +93,7 @@ jobs:
           #department: nrcan
           #en_qgis_project: /tests_directory/pub_ddr_processing/test_en.qgs
           #fr_qgis_project: /tests_directory/pub_ddr_processing/test_fr.qgs
-          #download_package: /tests_directory/pub_ddr_processing/radarsat.zip
+          #download_package: /tests_directory/pub_ddr_processing/radarsat_constellation_mission_plan.zip
           #qgis_server: QGIS_Server
           #dowload_server: Download_Server
           #select_the_czs: Agriculture
