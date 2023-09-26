@@ -19,7 +19,7 @@ env:
   fr_qgis_project: /tests_directory/pub_ddr_processing/test_fr.qgs
   download_package: /tests_directory/pub_ddr_processing/radarsat.zip
   qgis_server: QGIS_Server
-  dowload_server: Download_Server
+  download_server: Download_Server
   select_the_czs: Agriculture
   core_subject_term: Science
 
@@ -136,6 +136,22 @@ jobs:
                                                   --select_qgis_server=$qgis_server \
                                                   --select_the_czs=$select_the_czs \
                                                   --select_the_department=$department"
+
+            qgis_process run model:Update_service --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid=$metadata_uuid \
+                                                  --enter_your_email_address=$email_address \
+                                                  --enter_your_password=$password \
+                                                  --enter_your_username=$username \
+                                                  --environment=$environment \
+                                                  --keep_temporary_files=0 \
+                                                  --only_validate_the_update_action=true \
+                                                  --publish_a_download_service=true \
+                                                  --publish_a_web_service=true \
+                                                  --select_download_package=$download_pack \
+                                                  --select_en_qgis_project=aa \
+                                                  --select_fr_qgis_project=aa \
+                                                  --select_the_czs=aa \
+                                                  --select_the_department=aa
 
 
 
