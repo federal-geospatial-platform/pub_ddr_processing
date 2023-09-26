@@ -133,9 +133,4 @@ jobs:
                                                   --select_en_qgis_project=$en_qgis_project \
                                                   --select_fr_qgis_project=$fr_qgis_project \
                                                   --select_the_czs=$select_the_czs \
-                                                  --select_the_department=$department
-
-
-
-
-
+                                                  --select_the_department=$department"
