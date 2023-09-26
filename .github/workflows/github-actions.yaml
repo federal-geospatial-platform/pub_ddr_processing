@@ -118,7 +118,8 @@ jobs:
                                                   --select_the_department=$department"
 
             # Execute the update service in the docker with the mockoon API
-            qgis_process run model:Update_service --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+            docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Update_service.model3 \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
                                                   --enter_the_metadata_uuid=$metadata_uuid \
                                                   --enter_your_email_address=$email_address \
                                                   --enter_your_password=$password \
