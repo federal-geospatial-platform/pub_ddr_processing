@@ -129,7 +129,7 @@ jobs:
                                                   --only_validate_the_update_action=true \
                                                   --publish_a_download_service=true \
                                                   --publish_a_web_service=true \
-                                                  --select_download_package=$downnload_pack \
+                                                  --select_download_package=$downnload_package \
                                                   --select_en_qgis_project=$en_qgis_project \
                                                   --select_fr_qgis_project=$fr_qgis_project \
                                                   --select_the_czs=$select_the_czs \
