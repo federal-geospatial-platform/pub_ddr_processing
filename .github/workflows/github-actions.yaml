@@ -9,7 +9,7 @@ env:
   DOCKER_IMAGE: qgis/qgis
   # Plugin parameters
   metadata_uuid: 85ba1e14-0941-4f47-9747-9b1098b625e3
-  email_address: 'foo@foo.com'
+  email_address: foo@foo.com
   password: LeClown
   username: Coco
   environment: Test
@@ -20,7 +20,8 @@ env:
   download_package: /tests_directory/pub_ddr_processing/radarsat.zip
   qgis_server: QGIS_Server
   dowload_server: Download_Server
-  select_the_czs: aa
+  select_the_czs: Agriculture
+  core_subject_term: Science
 
 
 jobs:
@@ -82,6 +83,26 @@ jobs:
           curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
           #docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli@latest"
           #
+
+          #metadata_uuid: 85ba1e14-0941-4f47-9747-9b1098b625e3
+          #email_address: foo@foo.com
+          #password: LeClown
+          #username: Coco
+          #environment: Test
+          #temporary_files: 1
+          #department: nrcan
+          #en_qgis_project: /tests_directory/pub_ddr_processing/test_en.qgs
+          #fr_qgis_project: /tests_directory/pub_ddr_processing/test_fr.qgs
+          #download_package: /tests_directory/pub_ddr_processing/radarsat.zip
+          #qgis_server: QGIS_Server
+          #dowload_server: Download_Server
+          #select_the_czs: Agriculture
+          #core_subject_term: Science
+
           #docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli@latest"
           #docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
-          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Unpublish_service.model3 --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --enter_the_metadata_uuid='metadata_uuid' --enter_your_email_address='dd@dd.com' --enter_your_password='tPNRM%?eWN6E3io6' --enter_your_username=daniel-pilon --environment=Test --keep_temporary_files=1 --only_validate_the_unpublish_action=true --select_the_department=nrcan --unpublish_a_download_service=true --unpublish_a_web_service=false"
+          docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/Unpublish_service.model3 \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid='metadata_uuid' \
+                                                  --enter_your_email_address='email_address' \
+                                                  --enter_your_password='password' --enter_your_username=daniel-pilon --environment=Test --keep_temporary_files=1 --only_validate_the_unpublish_action=true --select_the_department=nrcan --unpublish_a_download_service=true --unpublish_a_web_service=false"
