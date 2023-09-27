@@ -1,68 +1,141 @@
-name: Test ddr_plugin
+name: Test ddr_processing
+
 on: [push]
 
 env:
-  # Plugin name/directory where the code for the plugin is stored 
+  # Plugin name/directory where the code for the plugin is stored
   PLUGIN_NAME: pub_ddr_processing
   # Docker settings
   DOCKER_IMAGE: qgis/qgis
+  # Plugin parameters
+  metadata_uuid: 85ba1e14-0941-4f47-9747-9b1098b625e3
+  email_address: foo@foo.com
+  password: LeClown
+  username: Coco
+  environment: Test
+  temporary_files: 1
+  department: nrcan
+  en_qgis_project: /tests_directory/model/test_en.qgs
+  fr_qgis_project: /tests_directory/model/test_fr.qgs
+  download_package: /tests_directory/model/radarsat_constellation_mission_plan.zip
+  qgis_server: QGIS_Server
+  download_server: Download_Server
+  select_the_czs: Agriculture
+  core_subject_term: Science
+  # QGIS models
+  publish_service: /tests_directory/model/Publish_service.model3
+  update_service: /tests_directory/model/Update_service.model3
+  unpublish_service: /tests_directory/model/Unpublish_service.model3
+
+
 
 jobs:
-  build:
+  ddr_processing_plugin:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        # docker_tags: [latest]
-        docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
+        docker_tags: [latest]
+    #    #docker_tags: [release-3_22, release-3_24, release-3_26, release-3_28, latest]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Run Mockoon CLI
+        uses: mockoon/cli-action@v1
+        with:
+          # Mockoon CLI version, default to 'latest'
+          version: "latest"
+          # Mockoon local data file or URL
+          data-file: "./openapi/mockoon.json"
+          # port, default to 3000
+          port: 3000
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
+      - name: Make test call
+        run: |
+            curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
 
-    - name: Install Mockoon
-      run: npm install -g @mockoon/cli
-    
-    - name: Start Mockoon server
-      run: mockoon-cli start --data ./pub_ddr_processing/mockoon.json
-      
-    - name: Install ArgoCD CLI and test Mockoon server
-      id: install_argocd
-      shell: bash
-      run: |
+      - name: Docker pull and create qgis-testing-environment
+        run: |
+          docker pull "$DOCKER_IMAGE":${{ matrix.docker_tags }}
+          docker run -d --net=host --name qgis-testing-environment -v "$GITHUB_WORKSPACE":/tests_directory -e DISPLAY=:99 "$DOCKER_IMAGE":${{ matrix.docker_tags }}
           curl -X 'POST' 'http://localhost:3000/api/login' -H 'accept: application/json' -H 'Content-Type: application/json' -d '{"password": "PASSWORD", "username": "alexandre-roy"}'
-          
-    # Pull and run the QGIS Docker environment
-    - name: Docker pull and create qgis-testing-environment
-      run: |
-        docker pull "$DOCKER_IMAGE":${{ matrix.docker_tags }}
-        docker run -d --name qgis-testing-environment -v "$GITHUB_WORKSPACE":/tests_directory -e DISPLAY=:99 "$DOCKER_IMAGE":${{ matrix.docker_tags }}
-        
-    # Exec the different commands in the docker environment
-    - name: Docker set up QGIS
-      run: |
-        # Install and start Mockoon
-        docker exec qgis-testing-environment sh -c "npm install -g @mockoon/cli"
-        docker exec qgis-testing-environment sh -c "mockoon-cli start --data /tests_directory/pub_ddr_processing/mockoon.json"
-        
-        # Setup Docker QGIS environment
-        docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
-        docker exec qgis-testing-environment sh -c "export XDG_RUNTIME_DIR=/tests_directory"
-        # docker exec qgis-testing-environment sh -c "export RUNLEVEL=3"
 
-        # Patch the QGIS user database for the login management and disable the output error
-        set +e
-        docker exec qgis-testing-environment sh -c "qgis_process run /tests_directory/pub_ddr_processing/patch_mockoon_user.py"
-        echo "exitcode=$?" >> $GITHUB_OUTPUT
-        
-        # Setup the pub_ddr_processing plugin and the directory
-        docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
-        docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
-        docker exec qgis-testing-environment sh -c "ln -s /tests_directory /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
+      # Exec the different commands in the docker environment
+      - name: Docker set up QGIS
+        run: |
+          # Setup Docker QGIS environment
+          docker exec qgis-testing-environment sh -c "apt install libxcb-cursor0"
+          docker exec qgis-testing-environment sh -c "export XDG_RUNTIME_DIR=/tests_directory"
 
-        # Excecute pub_ddr_processing Plugin in batch mode
-        docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:login --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 --AUTHENTICATION=p3m9sdd --ENVIRONMENT=Test"
-        #docker exec qgis-testing-environment sh -c "qgis_process run pub_ddr_processing:publish --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7030 --QGIS_FILE_EN='test5_en.qgs' --QGIS_FILE_FR='dummy\test5_fr.qgs' --DEPARTMENT=nrcan --METADATA_UUID=5c8559e4-ee59-47cc-8572-637c40f9aebb --EMAIL='foo.bar@nrcan-rncan.gc.ca' --DOWNLOAD_INFO_ID=DDR_DOWNLOAD1 --QGS_SERVER_ID=DDR_QGS_Internal --KEEP_FILES=No"
+          # Setup the pub_ddr_processing plugin and the directory
+          docker exec qgis-testing-environment sh -c "qgis_setup.sh $PLUGIN_NAME"
+          docker exec qgis-testing-environment sh -c "rm -f /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
+          docker exec qgis-testing-environment sh -c "ln -s /tests_directory /root/.local/share/QGIS/QGIS3/profiles/default/python/plugins/$PLUGIN_NAME"
+
+          #metadata_uuid: 85ba1e14-0941-4f47-9747-9b1098b625e3
+          #email_address: foo@foo.com
+          #password: LeClown
+          #username: Coco
+          #environment: Test
+          #temporary_files: 1
+          #department: nrcan
+          #en_qgis_project: /tests_directory/pub_ddr_processing/test_en.qgs
+          #fr_qgis_project: /tests_directory/pub_ddr_processing/test_fr.qgs
+          #download_package: /tests_directory/pub_ddr_processing/radarsat_constellation_mission_plan.zip
+          #qgis_server: QGIS_Server
+          #dowload_server: Download_Server
+          #select_the_czs: Agriculture
+          #core_subject_term: Science
+
+          # Execute the unpublish service in the docker with the mockoon API
+          docker exec qgis-testing-environment sh -c "qgis_process run $unpublish_service \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid=$metadata_uuid \
+                                                  --enter_your_email_address=$email_address$ \
+                                                  --enter_your_password=$password \
+                                                  --enter_your_username=$username \
+                                                  --environment=$environment \
+                                                  --keep_temporary_files=1 \
+                                                  --only_validate_the_unpublish_action=true \
+                                                  --select_the_department=$department \
+                                                  --unpublish_a_download_service=true \
+                                                  --unpublish_a_web_service=false"
+
+          # Execute the publish service in the docker with the mockoon API
+          docker exec qgis-testing-environment sh -c "qgis_process run $publish_service \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid=$metadata_uuid \
+                                                  --enter_your_email_address=$email_address \
+                                                  --enter_your_password=$password \
+                                                  --enter_your_username=$username \
+                                                  --environment=$environment \
+                                                  --keep_temporary_files=1 \
+                                                  --only_validate_the_publish_action=true \
+                                                  --publish_a_download_service=true \
+                                                  --publish_a_web_service=true \
+                                                  --select_core_subject_term=$core_subject_term \
+                                                  --select_download_package=$download_package \
+                                                  --select_download_server=$download_server \
+                                                  --select_en_qgis_project=$en_qgis_project \
+                                                  --select_fr_qgis_project=$fr_qgis_project \
+                                                  --select_qgis_server=$qgis_server \
+                                                  --select_the_czs=$select_the_czs \
+                                                  --select_the_department=$department"
+
+            # Execute the update service in the docker with the mockoon API
+            docker exec qgis-testing-environment sh -c "qgis_process run $update_service \
+                                                  --distance_units=meters --area_units=m2 --ellipsoid=EPSG:7019 \
+                                                  --enter_the_metadata_uuid=$metadata_uuid \
+                                                  --enter_your_email_address=$email_address \
+                                                  --enter_your_password=$password \
+                                                  --enter_your_username=$username \
+                                                  --environment=$environment \
+                                                  --keep_temporary_files=0 \
+                                                  --only_validate_the_update_action=true \
+                                                  --publish_a_download_service=true \
+                                                  --publish_a_web_service=true \
+                                                  --select_download_package=$download_package \
+                                                  --select_en_qgis_project=$en_qgis_project \
+                                                  --select_fr_qgis_project=$fr_qgis_project \
+                                                  --select_the_czs=$select_the_czs \
+                                                  --select_the_department=$department"

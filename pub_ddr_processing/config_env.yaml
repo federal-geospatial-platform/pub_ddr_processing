@@ -3,4 +3,6 @@ Environment:
   Staging: https://qgis.ddr-stage.services.geo.ca/api
   Dev: https://pub-api.ddr-dev.services.geo.ca/api
   Test: http://localhost:3000/api
-default_env: Staging
+Default_env: Staging
+Default_Web_Server: DDR_QGS1
+Default_Download_Server: DDR_DOWNLOAD1
