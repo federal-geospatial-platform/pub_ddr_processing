@@ -42,6 +42,7 @@ import inspect
 import requests
 import yaml
 from yaml.loader import SafeLoader
+from qgis import processing
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessingParameterDistance,
@@ -53,7 +54,7 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition, QgsProcessingParameterBoolean,
-                       QgsProcessingOutputString)
+                       QgsProcessingOutputString, QgsProcessingContext, QgsProcessingRegistry)
 
 PUBLISH = "PUBLISH"
 UNPUBLISH = "UNPUBLISH"
@@ -64,6 +65,7 @@ UPDATE = "UPDATE"
 class ControlFile:
     """Declare the fields in the control control file"""
 
+    action_ctl_file: str = None          # Action to do with an existing control file
     control_file_dir: str = None         # Name of temporary directory
     control_file_name: str = None        # Name of the control file
     core_subject_term: str = None
@@ -71,6 +73,7 @@ class ControlFile:
     download_package_file: str = None      # Name of download package name
     out_download_package_file: str = None  # Name of download package name
     email: str = None
+    existing_ctl_file: str = None        # Name of an existing control file
     in_project_filename: str = None
     json_document: str = None            # Name of the JSON document
     keep_files: str = None               # Name of the flag to keep the temporary files and directory
@@ -1161,24 +1164,24 @@ class UtilsGui():
     HELP_USAGE = """
         <b>General parameters</b>
         <u>Select the department</u>: Select which department own the publication.
-        <u>Enter the metadata UUID</u>: Enter the metadata UUID associated with this publication.
-        <u>Publish a web service</u>: Check box to enable if you wish to publish a web service. 
-        <u>Publish a download service</u>: Check box to enable if you wish to publish a download service.
+        <u>Enter the metadata UUID</u>: Enter the metadata UUID associated with this service (web or download).
+        <u>Publish a web service</u>: Check box to enable if you wish to manage a web service. 
+        <u>Publish a download service</u>: Check box to enable if you wish to manage a download service.
         <b>Web service parameters</b>
         <u>Select the English QGIS project file (.qgs)</u>: Select the project file with the ENGLISH layer description.
         <u>Select the French QGIS project file (.qgs)</u>: Select the project file with the French layer description.
-        <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip ship (CZS)
-        <u>Select the web server</u>: Name of the QGIS server used for the publication of the web service. Optional \
-        for publishing a web service
+        <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip ship (CZS).
+        <u>Select the web server</u>: Name of the QGIS server used for the publication of the web service.
         <b>Download service parameters</b>
         <u>Select the download package file</u>: Select the download package file to upload on the FTP server.
-        <u>Select a core subject term</u>: Select the core subject term, mandatory for uploading a download package.
+        <u>Select the appropriate core subject term</u>: Select the core subject term associated with this download pacakge.
+        <u>Select the download server</u>: Name of the FTP server used for the publication of the download service. 
         <b>Advanced Parameters</b>
-        <u>Enter your email address</u>: Email address used to send the publication notification.
+        <u>Enter your email address</u>: Email address used to send the notification.
         <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
-        <u>Only validate the <i>publish/update/unpublish</i> action</u> : The selected tool will work in validate mode \
-        in order to see if the selected parameters are accurate  
-        <b>Note All parameters may not apply to each <i>Publish, Unpublish</i> or <i>Update Validate</i> tool.</b>
+        <u>Only validate the <i>publish/update/unpublish</i> action</u> : If checked, the tool will work only in \
+        validate mode  in order to see if the selected parameters are accurate (valid).
+        <b>Note All parameters may not apply to each <i>Publish, Unpublish</i> or <i>Update</i> tool.</b>
     
     """
 
@@ -1252,7 +1255,34 @@ class UtilsGui():
         parameter.setHelp(message)
         self.addParameter(parameter)
 
+    @staticmethod
+    def add_ctl_file(self, message=""):
+        """Add Select EN and FR project file menu"""
 
+        parameter = QgsProcessingParameterFile(
+            name='EXISTING_CTL_FILE',
+            description='Select an existing control file (.json)',
+            extension='json',
+            optional=False,
+            behavior=QgsProcessingParameterFile.File)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_action_ctl_file(self, message=""):
+        """Add Select download info menu"""
+
+        lst_action_ctl_file = ["<not selected>", "Publish", "Unpublish", "Update"]
+        parameter = QgsProcessingParameterEnum(
+            name='DOWNLOAD_INFO_ID',
+            description=self.tr("Select the download server"),
+            options=lst_action_ctl_file,
+            defaultValue=lst_action_ctl_file[0],
+            usesStaticStrings=True,
+            optional=False,
+            allowMultiple=False)
+        parameter.setHelp(message)
+        self.addParameter(parameter)
 
     @staticmethod
     def add_department(self):
@@ -1313,7 +1343,6 @@ class UtilsGui():
             allowMultiple=False)
         parameter.setHelp(message)
         self.addParameter(parameter)
-
 
     @staticmethod
     def add_email(self):
@@ -1422,6 +1451,8 @@ class UtilsGui():
         ctl_file.download_package_file = self.parameterAsString(parameters, 'DOWNLOAD_PACKAGE', context)
         ctl_file.username = self.parameterAsString(parameters, 'USERNAME', context)
         ctl_file.password = self.parameterAsString(parameters, 'PASSWORD', context)
+        ctl_file.existing_ctl_file = self.parameterAsString(parameters, 'EXISTING_CTL_FILE', context)
+        ctl_file.action_ctl_file = self.parameterAsString(parameters, 'ACTION_CTL_FILE', context)
 
     @staticmethod
     def add_download_package(self, message):
@@ -2161,7 +2192,7 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         """Returns a localised short help string for the algorithm.
         """
         help_str = """This processing plugin logs into the DDR repository server. The authentication operation is \
-        mandatory before  doing any management operation: publish, update, unpublish or validate. 
+        mandatory before  doing any management operation: publish, update, unpublish. 
         """
 
         help_str = help_str + UtilsGui.HELP_USAGE
@@ -2242,5 +2273,136 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
             Utils.push_info(feedback, f"ERROR: {str(e)}")
+
+        return {}
+
+
+class DdrExistingCtlFile(QgsProcessingAlgorithm):
+    """Main class defining how to use an existing control file
+    """
+
+    def tr(self, string):  # pylint: disable=no-self-use
+        """Returns a translatable string with the self.tr() function.
+        """
+        return QCoreApplication.translate('Processing', string)
+
+    def createInstance(self):  # pylint: disable=no-self-use
+        """Returns a new copy of the algorithm.
+        """
+        return DdrExistingCtlFile()
+
+    def name(self):  # pylint: disable=no-self-use
+        """Returns the unique algorithm name.
+        """
+        return 'existing_ctl_file'
+
+    def displayName(self):  # pylint: disable=no-self-use
+        """Returns the translated algorithm name.
+        """
+        return self.tr('Use existing control file')
+
+    def group(self):
+        """Returns the name of the group this algorithm belongs to.
+        """
+        return self.tr(self.groupId())
+
+    def groupId(self):  # pylint: disable=no-self-use
+        """Returns the unique ID of the group this algorithm belongs to.
+        """
+        return 'Management (second step)'
+
+    def flags(self):
+        """Return the flags setting the NoThreading very important otherwise there are weird bugs...
+        """
+
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.Available
+
+    def shortHelpString(self):
+        """Returns a localised short help string for the algorithm.
+        """
+        help_str = """
+    The processing tool <i>Use existing control file</i> allows to use an already created control file in \
+    order to </i>Publish/Update/Unpublish</i> services."""
+
+        help_str += UtilsGui.HELP_USAGE
+
+        return self.tr(help_str)
+
+    def icon(self):  # pylint: disable=no-self-use
+        """Define the logo of the algorithm.
+        """
+
+        cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]
+        icon = QIcon(os.path.join(os.path.join(cmd_folder, 'logo.png')))
+        return icon
+
+    def initAlgorithm(self, config=None):  # pylint: disable=unused-argument
+        """Define the inputs and outputs of the algorithm.
+        """
+
+        UtilsGui.add_ctl_file(self)
+        UtilsGui.add_action_ctl_file(self)
+
+        return
+
+    def checkParameterValues(self, parameters, context):
+        """Check if the selection of the input parameters is valid"""
+
+        # Create the control file data structure
+        # control_file = ControlFile()
+
+        # UtilsGui.read_parameters(self, control_file, parameters, context )
+
+        return (True, "")
+
+    def processAlgorithm(self, parameters, context, feedback):
+        """Main method that extract parameters and call Simplify algorithm.
+        """
+
+        from qgis import processing
+        my_dialog = processing.createAlgorithmDialog("native:buffer", {
+            'INPUT': '/data/lines.shp',
+            'DISTANCE': 100.0,
+            'SEGMENTS': 10,
+            'DISSOLVE': True,
+            'END_CAP_STYLE': 0,
+            'JOIN_STYLE': 0,
+            'MITER_LIMIT': 10,
+            'OUTPUT': '/data/buffers.shp'})
+        my_dialog.exec_()
+        #my_dialog.show()
+        #pub = DdrPublishService()
+        #id = pub.id()
+        #print ("id: ", id)
+        #provider = self.provider()
+        #print ("provider: ", provider.algorithms())
+        #algo = provider.algorithm("publish_service")
+        #registry = QgsProcessingRegistry()
+        #algo_reg = registry.algorithmById(id)
+        #print ("toto1")
+        #print("algo: ", algo)
+        #print("algo_reg: ", algo_reg)
+        #print ("info:", registry.algorithms())
+        #print("toto2")
+        algo_to_execute = DdrUnpublishService()
+        parameters = {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
+                        'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False}
+        #print ("run: ", algo_reg.run(parameters, QgsProcessingContext(), feedback))
+        #algo_to_execute.create(parameters)
+        #algo_to_execute.run(parameters, context, feedback)
+        #prepared = algo_to_execute.prepareAlgorithm(parameters, context, feedback)
+        #print ("Prepared: ", prepared)
+        #algo_to_execute.runPrepared(parameters, context, feedback)
+        #algo_to_execute.initAlgorithm(parameters)
+        #algo_to_execute.processAlgorithm(parameters, context, feedback)
+        #processing.run("pub_ddr_processing:unpublish_service",
+        #               {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
+        #                'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False})
+        #print ("context: ", context)
+        #try:
+        #    dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
+        #except UserMessageException as e:
+        #    Utils.push_info(feedback, f"ERROR: Publish process")
+        #    Utils.push_info(feedback, f"ERROR: {str(e)}")
 
         return {}
