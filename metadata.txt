@@ -47,6 +47,8 @@ changelog=
     1.1.0 2023-09-20
         - Adjustment for new API end point
         - Remove Validate option and include validation option into Publish, Update and Unpublish option.
+    1.1.1 2023-09-27
+        - Adjustement of the documentation
 
 
 # Tags are comma separated with spaces allowed
