@@ -54,7 +54,7 @@ class PubDdrProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(DdrLogin())
-#        self.addAlgorithm(DdrLoginBatch())
+        self.addAlgorithm(DdrLoginBatch())
         self.addAlgorithm(DdrPublishService())
         self.addAlgorithm(DdrUpdateService())
         self.addAlgorithm(DdrUnpublishService())

@@ -2170,7 +2170,7 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.FlagHideFromToolbox
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
