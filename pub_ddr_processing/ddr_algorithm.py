@@ -95,6 +95,48 @@ class ControlFile:
     zip_file_name: str = None            # Name of the zip file
 
 
+class ManageControlFile(object):
+
+    def __init__(self):
+        self.ctl_file = None
+
+    def read_ctl_file(self, in_ctl_file):
+        """Read the JSON control file and validate the schema and the content.
+        """
+
+        try:
+            with open (in_ctl_file) as in_json:
+                # Read the control file
+                self.ctl_file = json.load(in_json)
+
+                # Validate the control file
+                self.__validate_ctl_file()
+
+                # Adjust control
+
+        except Exception:
+            raise UserMessageException(f"Unable to read JSON file: {in_ctl_file}")
+
+    def write_ctl_file(self):
+        """"""
+
+        print("The code to write the control file is not done")
+
+    def __validate_ctl_file(self):
+        """Validate the schema and the content of the control file and
+        raise an exception if there is an error."""
+
+        print ("The code to validate the control file is not done")
+
+    def __update_file_path(self):
+
+        print ("The code to update the file path is not done")
+
+
+
+
+
+
 class UserMessageException(Exception):
     """Exception raised when a message (likely an error message) needs to be sent to the User."""
     pass
@@ -1220,13 +1262,26 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
+    def add_write_ctl_file(self, action=""):
+        """Add Select the check box to save the control file"""
+
+        parameter = (QgsProcessingParameterBoolean(
+            name='WRITE_CTL_FILE',
+            description=self.tr(f"Save the control file (no action performed)"),
+            defaultValue=False,
+            optional=False))
+        parameter.setHelp(f"")
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
-        lst_validation_type = ["Publish", "Update", "Unpublish"]
+        lst_validation_type = ["<not selected>, Publish a service", "Update a service", "Unpublish a service"]
         self.addParameter(QgsProcessingParameterEnum(
             name='VALIDATION_TYPE',
-            description=self.tr("Select the validation type"),
+            description=self.tr("Select the type of action to perform"),
             options=lst_validation_type,
             defaultValue=lst_validation_type[0],
             usesStaticStrings=True,
@@ -1256,11 +1311,11 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
-    def add_ctl_file(self, message=""):
+    def add_open_ctl_file(self, message=""):
         """Add Select EN and FR project file menu"""
 
         parameter = QgsProcessingParameterFile(
-            name='EXISTING_CTL_FILE',
+            name='OPEN_CTL_FILE',
             description='Select an existing control file (.json)',
             extension='json',
             optional=False,
@@ -1269,12 +1324,26 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
-    def add_action_ctl_file(self, message=""):
+    def add_save_ctl_file(self, message=""):
+        """Add Select EN and FR project file menu"""
+
+        parameter = QgsProcessingParameterFile(
+            name='SAVE_CTL_FILE',
+            description='Select the name of the output control file (.json)',
+            extension='json',
+            optional=False,
+            behavior=QgsProcessingParameterFile.File)
+        parameter.setHelp(message)
+        parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(parameter)
+
+    @staticmethod
+    def add_action_select_file(self, message=""):
         """Add Select download info menu"""
 
         lst_action_ctl_file = ["<not selected>", "Publish", "Unpublish", "Update"]
         parameter = QgsProcessingParameterEnum(
-            name='DOWNLOAD_INFO_ID',
+            name='SELECT_CONTROL_FILE',
             description=self.tr("Select the download server"),
             options=lst_action_ctl_file,
             defaultValue=lst_action_ctl_file[0],
@@ -1803,12 +1872,15 @@ class DdrUpdateService(QgsProcessingAlgorithm):
         message = "Mandatory if you choose to update a download service"
         UtilsGui.add_download_package(self, message)
 
-
         # Advanced parameters
         action = "update"
         UtilsGui.add_email(self)
         UtilsGui.add_keep_files(self)
         UtilsGui.add_validate(self, action)
+        UtilsGui.add_write_ctl_file(self)
+        UtilsGui.add_save_ctl_file(self)
+
+        return
 
     def checkParameterValues(self, parameters, context):
         """Check if the selection of the input parameters is valid"""
@@ -2340,8 +2412,8 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """Define the inputs and outputs of the algorithm.
         """
 
-        UtilsGui.add_ctl_file(self)
-        UtilsGui.add_action_ctl_file(self)
+        UtilsGui.add_open_ctl_file(self)
+        UtilsGui.add_validation_type(self)
 
         return
 
@@ -2359,17 +2431,39 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        from qgis import processing
-        my_dialog = processing.createAlgorithmDialog("native:buffer", {
-            'INPUT': '/data/lines.shp',
-            'DISTANCE': 100.0,
-            'SEGMENTS': 10,
-            'DISSOLVE': True,
-            'END_CAP_STYLE': 0,
-            'JOIN_STYLE': 0,
-            'MITER_LIMIT': 10,
-            'OUTPUT': '/data/buffers.shp'})
-        my_dialog.exec_()
+
+        algo_name = "pub_ddr_processing:update_service"
+
+        parameter = { 'distance_units': 'meters',
+                      'area_units': 'm2',
+                      'ellipsoid': 'EPSG:7030',
+                      'DEPARTMENT': 'nrcan',
+                      'METADATA_UUID': 'aaa',
+                      'SERVICE_WEB': 'false',
+                      'SERVICE_DOWNLOAD': 'false',
+                      'QGIS_FILE_EN': '',
+                      'QGIS_FILE_FR': '',
+                      'DOWNLOAD_PACKAGE': '',
+                      'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca',
+                      'KEEP_FILES': 'No',
+                      'Validate': 'false',
+                      'WRITE_CTL_FILE': 'true',
+                      'SAVE_CTL_FILE': 'aa.json' }
+
+        action = processing.createAlgorithmDialog( algo_name, parameter)
+
+        action.exec_()
+
+#        my_dialog = processing.createAlgorithmDialog("native:buffer", {
+#            'INPUT': '/data/lines.shp',
+#            'DISTANCE': 100.0,
+#            'SEGMENTS': 10,
+#            'DISSOLVE': True,
+#            'END_CAP_STYLE': 0,
+#            'JOIN_STYLE': 0,
+#            'MITER_LIMIT': 10,
+#            'OUTPUT': '/data/buffers.shp'})
+#        my_dialog.exec_()
         #my_dialog.show()
         #pub = DdrPublishService()
         #id = pub.id()
@@ -2384,9 +2478,9 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         #print("algo_reg: ", algo_reg)
         #print ("info:", registry.algorithms())
         #print("toto2")
-        algo_to_execute = DdrUnpublishService()
-        parameters = {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
-                        'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False}
+ #       algo_to_execute = DdrUnpublishService()
+ #       parameters = {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
+ #                       'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False}
         #print ("run: ", algo_reg.run(parameters, QgsProcessingContext(), feedback))
         #algo_to_execute.create(parameters)
         #algo_to_execute.run(parameters, context, feedback)
@@ -2396,7 +2490,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         #algo_to_execute.initAlgorithm(parameters)
         #algo_to_execute.processAlgorithm(parameters, context, feedback)
         #processing.run("pub_ddr_processing:unpublish_service",
-        #               {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
+        #               {'DEPARTMENT': 'n rcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
         #                'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False})
         #print ("context: ", context)
         #try:

@@ -58,7 +58,7 @@ class PubDdrProvider(QgsProcessingProvider):
         self.addAlgorithm(DdrPublishService())
         self.addAlgorithm(DdrUpdateService())
         self.addAlgorithm(DdrUnpublishService())
-#        self.addAlgorithm(DdrExistingCtlFile())
+        self.addAlgorithm(DdrExistingCtlFile())
 
         # add additional algorithms here
         # self.addAlgorithm(MyOtherAlgorithm())
