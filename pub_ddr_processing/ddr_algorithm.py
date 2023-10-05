@@ -59,6 +59,25 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
 PUBLISH = "PUBLISH"
 UNPUBLISH = "UNPUBLISH"
 UPDATE = "UPDATE"
+TRUE = 'true'
+FALSE = 'false'
+
+# Control file key words
+CORE_SUBJECT_TERM = 'core_subject_term'
+CSZ_COLLECTION_THEME = 'czs_collection_theme'
+DEPARTMENT = 'department'
+DOWNLOAD_INFO_ID = 'download_info_id'
+DOWNLOAD_PACKAGE_NAME = 'download_package_name'
+EMAIL = 'email'
+GENERIC_PARAMETERS = "generic_parameters"
+IN_PROJECT_FILENAME = 'in_project_filename'
+LANGUAGE = 'language'
+METADATA_UUID = 'metadata_uuid'
+QGIS_SERVER_ID = 'qgis_server_id'
+SERVICE_SCHEMA_NAME = 'service_schema_name'
+SERVICE_PARAMETERS = 'service_parameters'
+ENGLISH = 'English'
+FRENCH = 'French'
 
 
 @dataclass
@@ -74,7 +93,7 @@ class ControlFile:
     out_download_package_file: str = None  # Name of download package name
     email: str = None
     existing_ctl_file: str = None        # Name of an existing control file
-    in_project_filename: str = None
+    in_control_file_name: str = None     # Name of the input control file (JSON)
     json_document: str = None            # Name of the JSON document
     keep_files: str = None               # Name of the flag to keep the temporary files and directory
     gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
@@ -99,6 +118,12 @@ class ManageControlFile(object):
 
     def __init__(self):
         self.ctl_file = None
+        self.publish_service_web = FALSE
+        self.update_service_web = FALSE
+        self.unpublish_service_web = FALSE
+        self.publish_service_download = FALSE
+        self.update_service_download = FALSE
+        self.unpublish_service_download = FALSE
 
     def read_ctl_file(self, in_ctl_file):
         """Read the JSON control file and validate the schema and the content.
@@ -109,32 +134,89 @@ class ManageControlFile(object):
                 # Read the control file
                 self.ctl_file = json.load(in_json)
 
-                # Validate the control file
-                self.__validate_ctl_file()
+                # Validate the control file schema
+                self.__validate_schema()
 
-                # Adjust control
+                # Validate the control file content
+                self.__validate_content()
+
+                # Set the service check box
+                self.__set_service()
 
         except Exception:
             raise UserMessageException(f"Unable to read JSON file: {in_ctl_file}")
 
     def write_ctl_file(self):
         """"""
+        print("The code to write the file path is not done")
 
-        print("The code to write the control file is not done")
+    def __validate_schema(self):
+        """Validate the schema of the control file and raise an exception if there is an error."""
 
-    def __validate_ctl_file(self):
-        """Validate the schema and the content of the control file and
-        raise an exception if there is an error."""
+        def validate_key (dict_content, key):
 
-        print ("The code to validate the control file is not done")
+            if key not in dict_content:
+                raise UserMessageException(f"Invalid control file schema: missing entry:'{key}'")
 
-    def __update_file_path(self):
+            return
 
-        print ("The code to update the file path is not done")
+        if len(self.ctl_file) != 2:
+            raise UserMessageException("Invalid structure of the control file")
+
+        validate_key(self.ctl_file, GENERIC_PARAMETERS)
+        validate_key(self.ctl_file, SERVICE_PARAMETERS)
 
 
+        # Validate the generic_parameters section
+        if len(self.ctl_file[GENERIC_PARAMETERS]) != 8:
+            raise UserMessageException(f"Invalid structure of the control file (section '{GENERIC_PARAMETERS}')")
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], DEPARTMENT)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], DOWNLOAD_INFO_ID)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], EMAIL)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], METADATA_UUID)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], QGIS_SERVER_ID)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], DOWNLOAD_PACKAGE_NAME)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], CORE_SUBJECT_TERM)
+        validate_key(self.ctl_file[GENERIC_PARAMETERS], CSZ_COLLECTION_THEME)
 
+        # Validate the service_parameters sections
+        if len(self.ctl_file[SERVICE_PARAMETERS]) == 2 and type(self.ctl_file[SERVICE_PARAMETERS]) == list:
+            # Check the content of each part of the list
+            previous_value = None
+            for part in self.ctl_file[SERVICE_PARAMETERS]:
+                validate_key(part, IN_PROJECT_FILENAME)
+                validate_key(part, LANGUAGE)
+                validate_key(part, SERVICE_SCHEMA_NAME)
+        else:
+            raise UserMessageException(f"Invalid structure of the control file (section '{SERVICE_PARAMETERS}')")
 
+    def __validate_content(self):
+        """Validate the content of the control file and raise an exception if there is an error."""
+
+        previous_value = None
+        for part in self.ctl_file[SERVICE_PARAMETERS]:
+            # Validate the value of the language
+            if part[LANGUAGE] not in [ENGLISH, FRENCH]:
+                raise UserMessageException(f'Invalid structure of the control file: "language": "{part[LANGUAGE]}"')
+            # Each language must have a different value
+            if part[LANGUAGE] == previous_value:
+                raise UserMessageException('The language must not be identical for the project file name')
+
+    def __set_service(self):
+        """Set the service check box according to the content of the control file
+        """
+
+        if self.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] == "-":
+            self.unpublish_service_download = TRUE
+        elif self.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] != "":
+            self.update_service_download = TRUE
+            self.publish_service_download = TRUE
+
+        if self.ctl_file[SERVICE_PARAMETERS] == {}:
+            self.unpublish_service_web = TRUE
+        elif len(self.ctl_file[SERVICE_PARAMETERS]) == 2:
+            self.update_service_web = TRUE
+            self.publish_service_web = TRUE
 
 
 class UserMessageException(Exception):
@@ -1278,7 +1360,7 @@ class UtilsGui():
     def add_validation_type(self):
         """Add Select the the type of validation"""
 
-        lst_validation_type = ["<not selected>, Publish a service", "Update a service", "Unpublish a service"]
+        lst_validation_type = ["<not selected>", "Publish a service", "Update a service", "Unpublish a service"]
         self.addParameter(QgsProcessingParameterEnum(
             name='VALIDATION_TYPE',
             description=self.tr("Select the type of action to perform"),
@@ -1331,7 +1413,7 @@ class UtilsGui():
             name='SAVE_CTL_FILE',
             description='Select the name of the output control file (.json)',
             extension='json',
-            optional=False,
+            optional=True,
             behavior=QgsProcessingParameterFile.File)
         parameter.setHelp(message)
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -1522,6 +1604,7 @@ class UtilsGui():
         ctl_file.password = self.parameterAsString(parameters, 'PASSWORD', context)
         ctl_file.existing_ctl_file = self.parameterAsString(parameters, 'EXISTING_CTL_FILE', context)
         ctl_file.action_ctl_file = self.parameterAsString(parameters, 'ACTION_CTL_FILE', context)
+        ctl_file.in_control_file_name = self.parameterAsString(parameters, 'OPEN_CTL_FILE', context)
 
     @staticmethod
     def add_download_package(self, message):
@@ -1699,6 +1782,8 @@ class DdrPublishService(QgsProcessingAlgorithm):
         UtilsGui.add_email(self)
         UtilsGui.add_keep_files(self)
         UtilsGui.add_validate(self, action)
+        UtilsGui.add_write_ctl_file(self)
+        UtilsGui.add_save_ctl_file(self)
 
         return
 
@@ -2041,6 +2126,8 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         UtilsGui.add_email(self)
         UtilsGui.add_keep_files(self)
         UtilsGui.add_validate(self, action)
+        UtilsGui.add_write_ctl_file(self)
+        UtilsGui.add_save_ctl_file(self)
 
     @staticmethod
     def unpublish_project_file(ctl_file, parameters, context, feedback):
@@ -2431,24 +2518,46 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
+        import web_pdb; web_pdb.set_trace()
+        ctl_file = ControlFile()
+        UtilsGui.read_parameters(self, ctl_file, parameters, context)
+
+        mng_ctl_file = ManageControlFile()
+        mng_ctl_file.read_ctl_file(ctl_file.in_control_file_name)
+#        ctl_file.read_ctl_file(r"C:\Users\dpilon\AppData\Local\Temp\qgis_pi1igcax\ControlFile.json")
+
+        algo_name = "pub_ddr_processing:unpublish_service"
+        parameter = {'distance_units': 'meters',
+                     'area_units': 'm2',
+                     'ellipsoid': 'EPSG:7030',
+                     'DEPARTMENT': '',
+                     'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                     'SERVICE_WEB': mng_ctl_file.update_service_web,
+                     'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                     'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
+                     'KEEP_FILES': 'No',
+                     'Validate': 'false',
+                     'WRITE_CTL_FILE': 'false',
+                     'SAVE_CTL_FILE': ctl_file.in_control_file_name}
+
+
 
         algo_name = "pub_ddr_processing:update_service"
-
         parameter = { 'distance_units': 'meters',
                       'area_units': 'm2',
                       'ellipsoid': 'EPSG:7030',
-                      'DEPARTMENT': 'nrcan',
-                      'METADATA_UUID': 'aaa',
-                      'SERVICE_WEB': 'false',
-                      'SERVICE_DOWNLOAD': 'false',
-                      'QGIS_FILE_EN': '',
-                      'QGIS_FILE_FR': '',
-                      'DOWNLOAD_PACKAGE': '',
-                      'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca',
+                      'DEPARTMENT':  mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
+                      'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                      'SERVICE_WEB': mng_ctl_file.update_service_web,
+                      'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                      'QGIS_FILE_EN': mng_ctl_file.ctl_file[SERVICE_PARAMETERS][0][IN_PROJECT_FILENAME],
+                      'QGIS_FILE_FR': mng_ctl_file.ctl_file[SERVICE_PARAMETERS][0][IN_PROJECT_FILENAME],
+                      'DOWNLOAD_PACKAGE': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME],
+                      'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
                       'KEEP_FILES': 'No',
                       'Validate': 'false',
                       'WRITE_CTL_FILE': 'true',
-                      'SAVE_CTL_FILE': 'aa.json' }
+                      'SAVE_CTL_FILE': ctl_file.in_control_file_name }
 
         action = processing.createAlgorithmDialog( algo_name, parameter)
 
