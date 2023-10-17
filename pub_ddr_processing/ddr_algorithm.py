@@ -94,6 +94,7 @@ class ControlFile:
     download_package_file: str = None      # Name of download package name
     out_download_package_file: str = None  # Name of download package name
     email: str = None
+    existing_ctl_file: str = None        # Name of an existing control file
     output_ctl_file: str = None          # Name of the output control file
     in_control_file_name: str = None     # Name of the input control file (JSON)
     json_document: str = None            # Name of the JSON document
@@ -176,25 +177,31 @@ class ManageControlFile(object):
 
         if ctl_file.download_package_file != "":
             # Extract the name of the download package without the directory and the extension
-            download_package_name = Path(ctl_file.download_package_file).stem
+            download_package_file = Path(ctl_file.download_package_file).stem
+        else:
+            download_package_file = ""
 
         if ctl_file.qgs_project_file_en != "":
             # Extract the name and the extension of the QGIS project file EN
             qgs_project_file_en = Path(ctl_file.out_qgs_project_file_en).name
+        else:
+            qgs_project_file_en = ""
 
         if ctl_file.qgs_project_file_fr != "":
             # Extract the name and the extension of the QGIS project file EN
             qgs_project_file_fr = Path(ctl_file.out_qgs_project_file_fr).name
+        else:
+            qgs_project_file_fr = ""
 
         # Create the JSON control file
         service_parameters = [
             {
-                IN_PROJECT_FILENAME: ctl_file.qgs_project_file_en,
+                IN_PROJECT_FILENAME: qgs_project_file_en,
                 LANGUAGE: 'English',
                 SERVICE_SCHEMA_NAME: ctl_file.department
             },
             {
-                IN_PROJECT_FILENAME: ctl_file.qgs_project_file_fr,
+                IN_PROJECT_FILENAME: qgs_project_file_fr,
                 LANGUAGE: 'French',
                 SERVICE_SCHEMA_NAME: ctl_file.department
             }
@@ -207,7 +214,7 @@ class ManageControlFile(object):
                 EMAIL: ctl_file.email,
                 METADATA_UUID: ctl_file.metadata_uuid,
                 QGIS_SERVER_ID: ctl_file.qgs_server_id,
-                DOWNLOAD_PACKAGE_NAME: ctl_file.download_package_file,
+                DOWNLOAD_PACKAGE_NAME: download_package_file,
                 CORE_SUBJECT_TERM: ctl_file.core_subject_term,
                 CSZ_COLLECTION_THEME: theme_uuid
             },
@@ -215,16 +222,25 @@ class ManageControlFile(object):
         }
 
         if process_type in [PUBLISH, UPDATE]:
-            if not ctl_file.service_web:
+            if ctl_file.service_web:
+                # Unpublish the web service
                 json_control_file[SERVICE_PARAMETERS] = []
             if not ctl_file.service_download:
                 json_control_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] = ""
 
         if process_type in [UNPUBLISH]:
-            if not ctl_file.service_web:
+            if ctl_file.service_web:
+                # Unpublish the web service
                 json_control_file[SERVICE_PARAMETERS] = [{}]
-            if not ctl_file.service_download:
+            else:
+                # No action on the web service
+                json_control_file[SERVICE_PARAMETERS] = []
+            if ctl_file.service_download:
+                # Unpublish the download package
                 json_control_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] = "-"
+            else:
+                # No action on the download package
+                json_control_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] = ""
 
 
 
@@ -281,6 +297,8 @@ class ManageControlFile(object):
 #            "service_parameters": service_parameters
 #        }
 
+        import web_pdb; web_pdb.set_trace()
+
         # Serialize the JSON
         json_object = json.dumps(json_control_file, indent=4, ensure_ascii=False)
 
@@ -288,7 +306,7 @@ class ManageControlFile(object):
         if ctl_file_mode == EXECUTE_CTL_FILE:
             ctl_file_name = os.path.join(ctl_file.control_file_dir, "ControlFile.json")
         else:
-            ctl_file_name = ctl_file.in_control_file_name
+            ctl_file_name = ctl_file.output_ctl_file
 
         with open(ctl_file_name, "w") as outfile:
             outfile.write(json_object)
@@ -1749,7 +1767,7 @@ class UtilsGui():
         ctl_file.password = self.parameterAsString(parameters, 'PASSWORD', context)
         ctl_file.existing_ctl_file = self.parameterAsString(parameters, 'EXISTING_CTL_FILE', context)
         ctl_file.bool_ctl_file = self.parameterAsBool(parameters, 'BOOL_CTL_FILE', context)
-        ctl_file.output_control_file = self.parameterAsString(parameters, 'OUTPUT_CTL_FILE', context)
+        ctl_file.output_ctl_file = self.parameterAsString(parameters, 'OUTPUT_CTL_FILE', context)
 
         return
 
@@ -2677,12 +2695,12 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        #import web_pdb; web_pdb.set_trace()
+        # import web_pdb; web_pdb.set_trace()
         ctl_file = ControlFile()
         UtilsGui.read_parameters(self, ctl_file, parameters, context)
 
         mng_ctl_file = ManageControlFile()
-        mng_ctl_file.read_ctl_file(ctl_file.in_control_file_name)
+        mng_ctl_file.read_ctl_file(ctl_file.existing_ctl_file)
 #        ctl_file.read_ctl_file(r"C:\Users\dpilon\AppData\Local\Temp\qgis_pi1igcax\ControlFile.json")
 
         algo_name = "pub_ddr_processing:unpublish_service"
@@ -2697,7 +2715,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
                      'KEEP_FILES': 'No',
                      'Validate': 'false',
                      'WRITE_CTL_FILE': 'false',
-                     'SAVE_CTL_FILE': ctl_file.in_control_file_name}
+                     'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
 
         action = processing.createAlgorithmDialog(algo_name, parameter)
 
@@ -2718,7 +2736,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
                       'KEEP_FILES': 'No',
                       'Validate': 'false',
                       'WRITE_CTL_FILE': 'false',
-                      'SAVE_CTL_FILE': ctl_file.in_control_file_name }
+                      'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
 
         algo_name = "pub_ddr_processing:publish_service"
         parameter = {'distance_units': 'meters',
@@ -2738,7 +2756,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
                       'KEEP_FILES': 'No',
                       'Validate': 'false',
                       'WRITE_CTL_FILE': 'false',
-                      'SAVE_CTL_FILE': ctl_file.in_control_file_name}
+                      'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
 
         #import web_pdb; web_pdb.set_trace()
 #        print(parameter)
