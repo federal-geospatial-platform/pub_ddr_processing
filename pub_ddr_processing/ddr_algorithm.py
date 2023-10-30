@@ -86,10 +86,12 @@ EXECUTE_CTL_FILE = "Execute_control_file"
 class ControlFile:
     """Declare the fields in the control control file"""
 
+    action_to_perform: str = None        # Action to perform when reading a JSON control file
     bool_ctl_file: str = None            # Action to perform with an existing control file
     control_file_dir: str = None         # Name of temporary directory
     control_file_name: str = None        # Name of the control file
     core_subject_term: str = None
+    czs_collection_theme: str = None     # Name of the collection theme
     download_info_id: str = None
     download_package_file: str = None      # Name of download package name
     out_download_package_file: str = None  # Name of download package name
@@ -128,20 +130,20 @@ class ManageControlFile(object):
         self.update_service_download = FALSE
         self.unpublish_service_download = FALSE
 
-    def get_project_file_name(self, language):
-        """Extract the project file name for the requested language
-        """
-
-        file_name = ""
-        for part in self.ctl_file[SERVICE_PARAMETERS]:
-            try:
-                if part[LANGUAGE] == language:
-                    file_name = part[IN_PROJECT_FILENAME]
-                    break
-            except KeyError:
-                pass
-
-        return file_name
+#    def get_project_file_name(self, language):
+#        """Extract the project file name for the requested language
+#        """
+#
+#        file_name = ""
+#        for part in self.ctl_file[SERVICE_PARAMETERS]:
+#            try:
+#                if part[LANGUAGE] == language:
+#                    file_name = part[IN_PROJECT_FILENAME]
+#                    break
+#            except KeyError:
+#                pass
+#
+#        return file_name
 
     def read_ctl_file(self, in_ctl_file):
         """Read the JSON control file and validate the schema and the content.
@@ -167,9 +169,9 @@ class ManageControlFile(object):
     def write_ctl_file(self, process_type, ctl_file, ctl_file_mode, feedback):
         """"""
 
-
+        import web_pdb; web_pdb.set_trace()
         # Adjust some values of the control file
-        if ctl_file.csz_collection_theme != "":
+        if ctl_file.czs_collection_theme != "":
             # Extract the UUID associated with the collection theme
             theme_uuid = DdrInfo.get_theme_uuid(ctl_file.csz_collection_theme)
         else:
@@ -183,13 +185,13 @@ class ManageControlFile(object):
 
         if ctl_file.qgs_project_file_en != "":
             # Extract the name and the extension of the QGIS project file EN
-            qgs_project_file_en = Path(ctl_file.out_qgs_project_file_en).name
+            qgs_project_file_en = Path(ctl_file.qgs_project_file_en).name
         else:
             qgs_project_file_en = ""
 
         if ctl_file.qgs_project_file_fr != "":
             # Extract the name and the extension of the QGIS project file EN
-            qgs_project_file_fr = Path(ctl_file.out_qgs_project_file_fr).name
+            qgs_project_file_fr = Path(ctl_file.qgs_project_file_fr).name
         else:
             qgs_project_file_fr = ""
 
@@ -229,12 +231,15 @@ class ManageControlFile(object):
                 json_control_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] = ""
 
         if process_type in [UNPUBLISH]:
+            # Manage web service
             if ctl_file.service_web:
                 # Unpublish the web service
                 json_control_file[SERVICE_PARAMETERS] = [{}]
             else:
                 # No action on the web service
                 json_control_file[SERVICE_PARAMETERS] = []
+
+            # Manage download service
             if ctl_file.service_download:
                 # Unpublish the download package
                 json_control_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME] = "-"
@@ -297,8 +302,6 @@ class ManageControlFile(object):
 #            "service_parameters": service_parameters
 #        }
 
-        import web_pdb; web_pdb.set_trace()
-
         # Serialize the JSON
         json_object = json.dumps(json_control_file, indent=4, ensure_ascii=False)
 
@@ -343,7 +346,8 @@ class ManageControlFile(object):
         validate_key(self.ctl_file[GENERIC_PARAMETERS], CSZ_COLLECTION_THEME)
 
         # Validate the service_parameters sections
-        if len(self.ctl_file[SERVICE_PARAMETERS]) == 2 and type(self.ctl_file[SERVICE_PARAMETERS]) == list:
+        if len(self.ctl_file[SERVICE_PARAMETERS]) in [0, 2] and \
+           type(self.ctl_file[SERVICE_PARAMETERS]) == list:
             # Check the content of each part of the list
             previous_value = None
             for part in self.ctl_file[SERVICE_PARAMETERS]:
@@ -380,7 +384,6 @@ class ManageControlFile(object):
         elif len(self.ctl_file[SERVICE_PARAMETERS]) == 2:
             self.update_service_web = TRUE
             self.publish_service_web = TRUE
-
 
 class UserMessageException(Exception):
     """Exception raised when a message (likely an error message) needs to be sent to the User."""
@@ -1520,12 +1523,12 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
-    def add_validation_type(self):
+    def add_action_to_perform(self):
         """Add Select the the type of validation"""
 
         lst_validation_type = ["<not selected>", "Publish a service", "Update a service", "Unpublish a service"]
         self.addParameter(QgsProcessingParameterEnum(
-            name='VALIDATION_TYPE',
+            name='ACTION_TO_PERFORM',
             description=self.tr("Select the type of action to perform"),
             options=lst_validation_type,
             defaultValue=lst_validation_type[0],
@@ -1757,7 +1760,7 @@ class UtilsGui():
         ctl_file.email = self.parameterAsString(parameters, 'EMAIL', context)
         ctl_file.qgs_server_id = self.parameterAsString(parameters, 'QGS_SERVER_ID', context)
         ctl_file.keep_files = self.parameterAsString(parameters, 'KEEP_FILES', context)
-        ctl_file.csz_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
+        ctl_file.czs_collection_theme = self.parameterAsString(parameters, 'CSZ_THEMES', context)
         ctl_file.qgs_project_file_en = self.parameterAsString(parameters, 'QGIS_FILE_EN', context)
         ctl_file.qgs_project_file_fr = self.parameterAsString(parameters, 'QGIS_FILE_FR', context)
         ctl_file.validate = self.parameterAsBool(parameters, 'VALIDATE', context)
@@ -1768,6 +1771,17 @@ class UtilsGui():
         ctl_file.existing_ctl_file = self.parameterAsString(parameters, 'EXISTING_CTL_FILE', context)
         ctl_file.bool_ctl_file = self.parameterAsBool(parameters, 'BOOL_CTL_FILE', context)
         ctl_file.output_ctl_file = self.parameterAsString(parameters, 'OUTPUT_CTL_FILE', context)
+        ctl_file.action_to_perform = self.parameterAsString(parameters, 'ACTION_TO_PERFORM', context)
+
+        # Update value of action to perform
+        if ctl_file.action_to_perform == "Publish a service":
+            ctl_file.action_to_perform = PUBLISH
+        elif ctl_file.action_to_perform == "Update a service":
+            ctl_file.action_to_perform = UPDATE
+        elif ctl_file.action_to_perform == "Unpublish a service":
+            ctl_file.action_to_perform = UNPUBLISH
+        else:
+            ctl_file.action_to_perform = None  # Should not arrive...
 
         return
 
@@ -1805,7 +1819,7 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
 
 
 
-    import web_pdb; web_pdb.set_trace()
+    # import web_pdb; web_pdb.set_trace()
 
     # Create the control file data structure
     ctl_file = ControlFile()
@@ -2348,8 +2362,7 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        import web_pdb;
-        web_pdb.set_trace()
+        # import web_pdb; web_pdb.set_trace()
         try:
             dispatch_algorithm(self, UNPUBLISH, parameters, context, feedback)
         except UserMessageException as e:
@@ -2472,7 +2485,6 @@ class DdrLogin(QgsProcessingAlgorithm):
             Utils.read_csz_themes(ctl_file, feedback)
             Utils.read_ddr_departments(ctl_file, feedback)
             Utils.read_user_email(ctl_file, feedback)
-#            import web_pdb; web_pdb.set_trace()
             Utils.read_downloads(ctl_file, feedback)
             Utils.read_servers(ctl_file, feedback)
 
@@ -2602,7 +2614,6 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
             Utils.read_csz_themes(ctl_file, feedback)
             Utils.read_ddr_departments(ctl_file, feedback)
             Utils.read_user_email(ctl_file, feedback)
-#            import web_pdb; web_pdb.set_trace()
             Utils.read_downloads(ctl_file, feedback)
             Utils.read_servers(ctl_file, feedback)
 
@@ -2677,7 +2688,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """
 
         UtilsGui.add_existing_ctl_file(self)
-        UtilsGui.add_validation_type(self)
+        UtilsGui.add_action_to_perform(self)
 
         return
 
@@ -2695,70 +2706,125 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        # import web_pdb; web_pdb.set_trace()
+        def __get_download_package_name():
+            """Extract the download package name"""
+
+            download_package_name = mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME]
+            if download_package_name == "-":
+                download_package_name = ""  # Empty download package name
+            elif download_package_name != "":
+                download_package_name = __add_folder(download_package_name, ".zip")
+
+            return download_package_name
+
+        def __get_project_file_name(language):
+            """Extract the project file name according to the requested language"""
+
+            if mng_ctl_file.ctl_file[SERVICE_PARAMETERS] in [[], [{}]]:
+                project_file_name = ""  # Empty project file name
+
+            else:
+                if mng_ctl_file.ctl_file[SERVICE_PARAMETERS][0][LANGUAGE] == language:
+                    project_file_name = mng_ctl_file.ctl_file[SERVICE_PARAMETERS][0][IN_PROJECT_FILENAME]
+                else:
+                    project_file_name = mng_ctl_file.ctl_file[SERVICE_PARAMETERS][1][IN_PROJECT_FILENAME]
+
+            if project_file_name != "":
+                project_file_name = __add_folder(project_file_name, "")
+
+            return project_file_name
+
+        def __add_folder(file_name, file_extension):
+            """This method adds a folder directory to a file name if the resulting file is
+            present in the folder directory of the control file"""
+
+            # Extract the folder name of the control file
+            tmp = Path(ctl_file.existing_ctl_file)
+            folder_ctl_file = str(tmp.parent)
+
+            # Adjust the suffix of the file name
+            if file_extension != "":
+                if Path(file_name).suffix == "":
+                    file_name += file_extension
+
+            # Adjust the folder of the file name
+            tmp = Path(file_name)
+            folder_file_name = str(tmp.parent)  # Extract the folder of the package
+            if folder_file_name == ".":  # Current directory (no directory folder specified)
+                tmp_file_name = os.path.join(folder_ctl_file, file_name)
+
+            if os.path.isfile(tmp_file_name):
+                file_name = tmp_file_name
+
+            return file_name
+
+        import web_pdb; web_pdb.set_trace()
         ctl_file = ControlFile()
         UtilsGui.read_parameters(self, ctl_file, parameters, context)
 
         mng_ctl_file = ManageControlFile()
-        mng_ctl_file.read_ctl_file(ctl_file.existing_ctl_file)
-#        ctl_file.read_ctl_file(r"C:\Users\dpilon\AppData\Local\Temp\qgis_pi1igcax\ControlFile.json")
+        mng_ctl_file.read_ctl_file(ctl_file.existing_ctl_file)  # Read the control file
 
-        algo_name = "pub_ddr_processing:unpublish_service"
-        parameter = {'distance_units': 'meters',
-                     'area_units': 'm2',
-                     'ellipsoid': 'EPSG:7030',
-                     'DEPARTMENT': '',
-                     'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
-                     'SERVICE_WEB': mng_ctl_file.update_service_web,
-                     'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
-                     'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
-                     'KEEP_FILES': 'No',
-                     'Validate': 'false',
-                     'WRITE_CTL_FILE': 'false',
-                     'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
+        # Set parameters to unpublish a service
+        if ctl_file.action_to_perform == UNPUBLISH:
+            algo_name = "pub_ddr_processing:unpublish_service"
+            parameter = {'distance_units': 'meters',
+                         'area_units': 'm2',
+                         'ellipsoid': 'EPSG:7030',
+                         'DEPARTMENT': '',
+                         'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                         'SERVICE_WEB': mng_ctl_file.update_service_web,
+                         'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                         'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
+                         'KEEP_FILES': 'No',
+                         'Validate': 'false',
+                         'WRITE_CTL_FILE': 'false',
+                         'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
 
+        # Set parameters to update a service
+        if ctl_file.action_to_perform == UPDATE:
+            algo_name = "pub_ddr_processing:update_service"
+            parameter = { 'distance_units': 'meters',
+                          'area_units': 'm2',
+                          'ellipsoid': 'EPSG:7030',
+                          'DEPARTMENT':  mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
+                          'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                          'SERVICE_WEB': mng_ctl_file.update_service_web,
+                          'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                          'QGIS_FILE_EN': __get_project_file_name(ENGLISH),
+                          'QGIS_FILE_FR': __get_project_file_name(FRENCH),
+                          'DOWNLOAD_PACKAGE': __get_download_package_name(),
+                          'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
+                          'KEEP_FILES': 'No',
+                          'Validate': 'false',
+                          'WRITE_CTL_FILE': 'false',
+                          'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
+
+        # Set parameters to publish a service
+        if ctl_file.action_to_perform == PUBLISH:
+            algo_name = "pub_ddr_processing:publish_service"
+            parameter = {'distance_units': 'meters',
+                         'area_units': 'm2',
+                         'ellipsoid': 'EPSG:7030',
+                         'DEPARTMENT': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
+                         'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                         'SERVICE_WEB': mng_ctl_file.update_service_web,
+                         'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                         'QGIS_FILE_EN': __get_project_file_name(ENGLISH),
+                          'QGIS_FILE_FR': __get_project_file_name(FRENCH),
+                          'QGS_SERVER_ID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][QGIS_SERVER_ID],
+                          'DOWNLOAD_PACKAGE': __get_download_package_name(),
+                          'DOWNLOAD_INFO_ID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_INFO_ID],
+                          'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
+                          'KEEP_FILES': 'No',
+                          'Validate': 'false',
+                          'WRITE_CTL_FILE': 'false',
+                          'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
+
+        # Execute the requested action
         action = processing.createAlgorithmDialog(algo_name, parameter)
-
         action.exec_()
 
-        algo_name = "pub_ddr_processing:update_service"
-        parameter = { 'distance_units': 'meters',
-                      'area_units': 'm2',
-                      'ellipsoid': 'EPSG:7030',
-                      'DEPARTMENT':  mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
-                      'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
-                      'SERVICE_WEB': mng_ctl_file.update_service_web,
-                      'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
-                      'QGIS_FILE_EN': mng_ctl_file.ctl_file[SERVICE_PARAMETERS][0][IN_PROJECT_FILENAME],
-                      'QGIS_FILE_FR': mng_ctl_file.ctl_file[SERVICE_PARAMETERS][1][IN_PROJECT_FILENAME],
-                      'DOWNLOAD_PACKAGE': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DOWNLOAD_PACKAGE_NAME],
-                      'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
-                      'KEEP_FILES': 'No',
-                      'Validate': 'false',
-                      'WRITE_CTL_FILE': 'false',
-                      'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
-
-        algo_name = "pub_ddr_processing:publish_service"
-        parameter = {'distance_units': 'meters',
-                     'area_units': 'm2',
-                     'ellipsoid': 'EPSG:7030',
-                     'DEPARTMENT': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
-                     'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
-                     'SERVICE_WEB': mng_ctl_file.update_service_web,
-                     'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
-                     'QGIS_FILE_EN': mng_ctl_file.get_project_file_name(ENGLISH),
-                      'QGIS_FILE_FR': mng_ctl_file.get_project_file_name(FRENCH),
-                      'QGS_SERVER_ID': 'DDR_QGS122',
-                      'DDR_QGS1': '',
-                      'DOWNLOAD_PACKAGE': '',
-                      'DOWNLOAD_INFO_ID': 'DOWNLOAD_coco',
-                      'EMAIL': 'mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL]',
-                      'KEEP_FILES': 'No',
-                      'Validate': 'false',
-                      'WRITE_CTL_FILE': 'false',
-                      'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
-
-        #import web_pdb; web_pdb.set_trace()
 #        print(parameter)
 #        action = processing.createAlgorithmDialog( algo_name, parameter)
 
