@@ -27,7 +27,6 @@
 QGIS Plugin for DDR manipulation
 """
 
-
 import os
 import http.client
 import json
@@ -51,8 +50,8 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsProcessingException, QgsProcessingParameterMultipleLayers, QgsMapLayer,
                        QgsVectorLayerExporter, QgsVectorFileWriter, QgsProject, QgsProcessingParameterEnum,
                        QgsProcessingParameterString, QgsProcessingParameterFolderDestination,
-                       QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri,  QgsDataProvider,
-                       QgsProviderRegistry, QgsProcessingParameterAuthConfig,  QgsApplication,  QgsAuthMethodConfig,
+                       QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri, QgsDataProvider,
+                       QgsProviderRegistry, QgsProcessingParameterAuthConfig, QgsApplication, QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition, QgsProcessingParameterBoolean,
                        QgsProcessingOutputString, QgsProcessingContext, QgsProcessingRegistry)
 
@@ -86,37 +85,37 @@ EXECUTE_CTL_FILE = "Execute_control_file"
 class ControlFile:
     """Declare the fields in the control control file"""
 
-    action_to_perform: str = None        # Action to perform when reading a JSON control file
-    bool_ctl_file: str = None            # Action to perform with an existing control file
-    control_file_dir: str = None         # Name of temporary directory
-    control_file_name: str = None        # Name of the control file
+    action_to_perform: str = None  # Action to perform when reading a JSON control file
+    bool_ctl_file: str = None  # Action to perform with an existing control file
+    control_file_dir: str = None  # Name of temporary directory
+    control_file_name: str = None  # Name of the control file
     core_subject_term: str = None
-    czs_collection_theme: str = None     # Name of the collection theme
+    czs_collection_theme: str = None  # Name of the collection theme
     download_info_id: str = None
-    download_package_file: str = None      # Name of download package name
+    download_package_file: str = None  # Name of download package name
     out_download_package_file: str = None  # Name of download package name
     email: str = None
-    existing_ctl_file: str = None        # Name of an existing control file
-    output_ctl_file: str = None          # Name of the output control file
-    in_control_file_name: str = None     # Name of the input control file (JSON)
-    json_document: str = None            # Name of the JSON document
-    keep_files: str = None               # Name of the flag to keep the temporary files and directory
-    gpkg_layer_counter: int = 0          # Name of the counter of vector layer in the GPKG file
-    gpkg_file_name: str = None           # Name of Geopackage containing the vector layers
+    existing_ctl_file: str = None  # Name of an existing control file
+    output_ctl_file: str = None  # Name of the output control file
+    in_control_file_name: str = None  # Name of the input control file (JSON)
+    json_document: str = None  # Name of the JSON document
+    keep_files: str = None  # Name of the flag to keep the temporary files and directory
+    gpkg_layer_counter: int = 0  # Name of the counter of vector layer in the GPKG file
+    gpkg_file_name: str = None  # Name of Geopackage containing the vector layers
     language: str = None
     metadata_uuid: str = None
     out_qgs_project_file_en: str = None  # Name out the output English project file
     out_qgs_project_file_fr: str = None  # Name out the output English project file
-    password: str = None                 # Login password
-    qgs_project_file_en: str = None      # Name of the input English QGIS project file
-    qgs_project_file_fr: str = None      # Name of the input French QGIS project file
+    password: str = None  # Login password
+    qgs_project_file_en: str = None  # Name of the input English QGIS project file
+    qgs_project_file_fr: str = None  # Name of the input French QGIS project file
     qgs_server_id: str = None
-    service_web: bool = None             # Flag for publishing a web service
-    service_download: bool = None        # Flag for publishing a download service
-    src_qgs_project_name = None          # Name of the actual project file name
-    username: str = None                 # Login username
-    validate: str = None                 # Is the action in validate mode
-    zip_file_name: str = None            # Name of the zip file
+    service_web: bool = None  # Flag for publishing a web service
+    service_download: bool = None  # Flag for publishing a download service
+    src_qgs_project_name = None  # Name of the actual project file name
+    username: str = None  # Login username
+    validate: str = None  # Is the action in validate mode
+    zip_file_name: str = None  # Name of the zip file
 
 
 class ManageControlFile(object):
@@ -130,21 +129,6 @@ class ManageControlFile(object):
         self.update_service_download = FALSE
         self.unpublish_service_download = FALSE
 
-#    def get_project_file_name(self, language):
-#        """Extract the project file name for the requested language
-#        """
-#
-#        file_name = ""
-#        for part in self.ctl_file[SERVICE_PARAMETERS]:
-#            try:
-#                if part[LANGUAGE] == language:
-#                    file_name = part[IN_PROJECT_FILENAME]
-#                    break
-#            except KeyError:
-#                pass
-#
-#        return file_name
-
     def read_ctl_file(self, in_ctl_file, feedback):
         """Read the JSON control file and validate the schema and the content.
         """
@@ -152,7 +136,7 @@ class ManageControlFile(object):
         # import web_pdb; web_pdb.set_trace()
         Utils.push_info(feedback, f"INFO: Reading JSON control file: {in_ctl_file}")
         try:
-            with open (in_ctl_file) as in_json:
+            with open(in_ctl_file) as in_json:
                 # Read the control file
                 self.ctl_file = json.load(in_json)
 
@@ -168,7 +152,8 @@ class ManageControlFile(object):
         except Exception:
             raise UserMessageException(f"Unable to read JSON file: {in_ctl_file}")
 
-    def write_ctl_file(self, process_type, ctl_file, ctl_file_mode, feedback):
+    @staticmethod
+    def write_ctl_file(process_type, ctl_file, ctl_file_mode, feedback):
         """"""
 
         # import web_pdb; web_pdb.set_trace()
@@ -263,11 +248,12 @@ class ManageControlFile(object):
             outfile.write(json_object)
 
         Utils.push_info(feedback, f"INFO: Creation of the JSON control file: {ctl_file_name}")
+        ctl_file.control_file_name = ctl_file_name
 
     def __validate_schema(self, feedback):
         """Validate the schema of the control file and raise an exception if there is an error."""
 
-        def validate_key (dict_content, key):
+        def validate_key(dict_content, key):
 
             if key not in dict_content:
                 raise UserMessageException(f"Invalid control file schema: missing entry:'{key}'")
@@ -280,7 +266,6 @@ class ManageControlFile(object):
         Utils.push_info(feedback, f"INFO: Validating schema of JSON control file")
         validate_key(self.ctl_file, GENERIC_PARAMETERS)
         validate_key(self.ctl_file, SERVICE_PARAMETERS)
-
 
         # Validate the generic_parameters section
         if len(self.ctl_file[GENERIC_PARAMETERS]) != 8:
@@ -302,7 +287,8 @@ class ManageControlFile(object):
                 if type(self.ctl_file[SERVICE_PARAMETERS][0]) == dict:
                     pass
                 else:
-                    raise UserMessageException(f"Invalid structure of the control file (section: '{SERVICE_PARAMETERS}')")
+                    raise UserMessageException(
+                        f"Invalid structure of the control file (section: '{SERVICE_PARAMETERS}')")
             elif len(self.ctl_file[SERVICE_PARAMETERS]) == 2:
                 # Check the content of each part of the list
                 for part in self.ctl_file[SERVICE_PARAMETERS]:
@@ -344,6 +330,7 @@ class ManageControlFile(object):
             self.update_service_web = TRUE
             self.publish_service_web = TRUE
 
+
 class UserMessageException(Exception):
     """Exception raised when a message (likely an error message) needs to be sent to the User."""
     pass
@@ -383,6 +370,10 @@ class DdrInfo(object):
 
     # Class variable used to verify that the DdrInfo class has been set
     __initialization_flag = False
+    __environment = None
+    __default_web_server = None
+    __default_environment = None
+    __default_download_server = None
 
     # Class variables used to store the content of the DdrInfo class
     __qgs_layer_name_en = None
@@ -390,7 +381,6 @@ class DdrInfo(object):
     __short_name_en = None
     __short_name_fr = None
     __json_theme = []
-    __json_department = []
     __json_download_info = []
     __email = None
     __json_downloads = None
@@ -414,14 +404,13 @@ class DdrInfo(object):
         if environment in DdrInfo.__dict_environments:
             DdrInfo.__environment = environment
         else:
-            raise UserMessageException(f"The envrionment {environment} is invalid")
+            raise UserMessageException(f"The environment {environment} is invalid")
 
     @staticmethod
     def get_http_environment():
         """Get the http address related to an environment"""
 
         return DdrInfo.__dict_environments[DdrInfo.__environment]
-
 
     @staticmethod
     def add_layer(src_layer, language):
@@ -494,7 +483,7 @@ class DdrInfo(object):
             DdrInfo.__email = json_email["email"]
         except KeyError:
             # Bad structure raise an exception and crash
-            raise UserMessageException(f"Issue with the JSON resoponse for the email: {json_email}")
+            raise UserMessageException(f"Issue with the JSON response for the email: {json_email}")
 
     @staticmethod
     def get_email():
@@ -514,7 +503,7 @@ class DdrInfo(object):
                 acronym = item['qgis_data_store_root_subpath']
         except KeyError:
             # Bad structure raise an exception and crash
-            raise UserMessageException(f"Issue with the JSON response for the departement: {json_department}")
+            raise UserMessageException(f"Issue with the JSON response for the department: {json_department}")
 
     @staticmethod
     def get_department_lst():
@@ -548,7 +537,7 @@ class DdrInfo(object):
         # Verify the structure/content of the JSON document
         try:
             for item in DdrInfo.__json_theme:
-                theme_uuid = item['theme_uuid']  # Just check that the key 'theme_uuid" exist
+                dummy = item['theme_uuid']  # Just check that the key 'theme_uuid" exist
                 title = item['title']
                 # Replace the coma "," by a semi column ";" as QGIS processing enum does not like coma
                 title['en'] = title['en'].replace(',', ';')
@@ -717,76 +706,7 @@ class Utils:
         return date_time
 
     @staticmethod
-    def create_json_control_file(ctl_file, feedback):
-        """Creation and writing of the JSON control file"""
-
-        # Creation of the JSON control file
-        theme_uuid = DdrInfo.get_theme_uuid(ctl_file.czs_collection_theme)
-
-        if ctl_file.out_download_package_file not in ["", "-"]:
-            # Get the download package name without the extension
-            download_package_name = Path(ctl_file.out_download_package_file).stem
-        else:
-            download_package_name = ctl_file.out_download_package_file
-
-        if ctl_file.out_qgs_project_file_en not in ["", "-"]:
-            qgs_project_file_en = Path(ctl_file.out_qgs_project_file_en).name
-        else:
-            qgs_project_file_en = ctl_file.out_qgs_project_file_en
-
-        if ctl_file.out_qgs_project_file_fr not in ["", "-"]:
-            qgs_project_file_fr = Path(ctl_file.out_qgs_project_file_fr).name
-        else:
-            qgs_project_file_fr = ctl_file.out_qgs_project_file_fr
-
-        if ctl_file.out_qgs_project_file_en not in ["", "-"] or ctl_file.out_qgs_project_file_fr not in ["", "-"]:
-            # Add the name of the file
-            service_parameters = [
-                {
-                    "in_project_filename": qgs_project_file_en,
-                    "language": 'English',
-                    "service_schema_name": ctl_file.department
-                },
-                {
-                    "in_project_filename": qgs_project_file_fr,
-                    "language": 'French',
-                    "service_schema_name": ctl_file.department
-                }
-            ]
-        else:
-            if ctl_file.out_qgs_project_file_en == "-" or ctl_file.out_qgs_project_file_fr == "-":
-                service_parameters = [{}]
-            else:
-                service_parameters = []
-
-        json_control_file = {
-            "generic_parameters": {
-                "department": ctl_file.department,
-                "download_info_id": ctl_file.download_info_id,
-                "email": ctl_file.email,
-                "metadata_uuid": ctl_file.metadata_uuid,
-                "qgis_server_id": ctl_file.qgs_server_id,
-                "download_package_name": download_package_name,
-                "core_subject_term": ctl_file.core_subject_term,
-                "czs_collection_theme": theme_uuid
-            },
-            "service_parameters": service_parameters
-        }
-
-        # Serialize the JSON
-        json_object = json.dumps(json_control_file, indent=4, ensure_ascii=False)
-
-        # Write the JSON document
-        ctl_file.control_file_name = os.path.join(ctl_file.control_file_dir, "ControlFile.json")
-        with open(ctl_file.control_file_name, "w") as outfile:
-            outfile.write(json_object)
-
-        Utils.push_info(feedback, f"INFO: Creation of the JSON control file: {ctl_file.control_file_name}")
-
-        return
-
-    @staticmethod
-    def read_czs_themes(ctl_file, feedback):
+    def read_czs_themes(feedback):
         """Read the CSZ themes from the service end point"""
 
         url = DdrInfo.get_http_environment()
@@ -798,11 +718,11 @@ class Utils:
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_csz_theme(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def read_ddr_departments(ctl_file, feedback):
+    def read_ddr_departments(feedback):
         """Read the DDR departments that the currently logged in User/Publisher has access to
            from the service endpoint"""
 
@@ -815,11 +735,11 @@ class Utils:
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_ddr_departments(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def read_user_email(ctl_file, feedback):
+    def read_user_email(feedback):
         """Read the User Email from the service end point"""
 
         url = DdrInfo.get_http_environment()
@@ -831,11 +751,11 @@ class Utils:
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_user_email(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def read_downloads(ctl_file, feedback):
+    def read_downloads(feedback):
         """Read the  downloads that the currently logged in User/Publisher has access to from the service end point"""
 
         url = DdrInfo.get_http_environment()
@@ -847,11 +767,11 @@ class Utils:
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_downloads(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def read_servers(ctl_file, feedback):
+    def read_servers(feedback):
         """Read the Servers from the service end point"""
 
         url = DdrInfo.get_http_environment()
@@ -863,11 +783,11 @@ class Utils:
             response = requests.get(url, verify=False, headers=headers)
             ResponseCodes.read_servers(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
     @staticmethod
-    def create_access_tokens(username, password, ctl_file, feedback):
+    def create_access_tokens(username, password, feedback):
         """Authentication of the username/password in order to get the access token
         """
 
@@ -877,12 +797,12 @@ class Utils:
         url = DdrInfo.get_http_environment() + "/login"
         headers = {"accept": "application/json",
                    "Content-type": "application/json",
-                   "charset":"utf-8" }
+                   "charset": "utf-8"}
         Utils.push_info(feedback, "INFO: Authentication to DDR")
         Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
         Utils.push_info(feedback, f"INFO: HTTP Headers: {headers}")
-        json_doc = { "password": password,
-                     "username": username}
+        json_doc = {"password": password,
+                    "username": username}
 
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
@@ -890,7 +810,7 @@ class Utils:
 
             ResponseCodes.create_access_token(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
         return
@@ -899,27 +819,27 @@ class Utils:
     def copy_qgis_project_file(ctl_file, feedback):
         """Creates a copy of the French and English QGIS project files"""
 
-        def read_write_qgs(feedback, qgs_file_name, languange):
+        def read_write_qgs(qgs_file_name, language):
             """Read and write the project file in a the temporary folder
                Force project property to be relative path
                Extract the name of the layers
             """
 
             # Read the QGIS project
-            qgs_project = QgsProject.instance()
-            qgs_project.read(qgs_file_name)
+            qgs_project_in = QgsProject.instance()
+            qgs_project_in.read(qgs_file_name)
             qgs_file = Path(qgs_file_name).name
             out_qgs_project_file = os.path.join(ctl_file.control_file_dir, qgs_file)
-            qgs_project.write(out_qgs_project_file)  # Write the project in the new directory
+            qgs_project_in.write(out_qgs_project_file)  # Write the project in the new directory
             # Force the project properties "Save Paths" to be Relative
-            qgs_project.writeEntryBool("Paths", "Absolute", False)
-            qgs_project.write(out_qgs_project_file)  # Rewrite the project properties with the new relative path
+            qgs_project_in.writeEntryBool("Paths", "Absolute", False)
+            qgs_project_in.write(out_qgs_project_file)  # Rewrite the project properties with the new relative path
             Utils.push_info(feedback, "INFO: QGIS project file save as: ", out_qgs_project_file)
 
-            qgs_project = QgsProject.instance()
-            for src_layer in qgs_project.mapLayers().values():
+            qgs_project_in = QgsProject.instance()
+            for src_layer in qgs_project_in.mapLayers().values():
                 # Adding the name of the layers with the language
-                DdrInfo.add_layer(src_layer, languange)
+                DdrInfo.add_layer(src_layer, language)
 
             return out_qgs_project_file
 
@@ -936,10 +856,10 @@ class Utils:
         qgs_project.clear()
 
         # Processing the French QGIS project file
-        ctl_file.out_qgs_project_file_fr = read_write_qgs(feedback, ctl_file.qgs_project_file_fr, "FR")
+        ctl_file.out_qgs_project_file_fr = read_write_qgs(ctl_file.qgs_project_file_fr, "FR")
 
         # Processing the English QGIS project file
-        ctl_file.out_qgs_project_file_en = read_write_qgs(feedback, ctl_file.qgs_project_file_en, "EN")
+        ctl_file.out_qgs_project_file_en = read_write_qgs(ctl_file.qgs_project_file_en, "EN")
 
     @staticmethod
     def copy_layer_gpkg(ctl_file, feedback):
@@ -961,12 +881,12 @@ class Utils:
                     options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer if Path(
                         ctl_file.gpkg_file_name).exists() else QgsVectorFileWriter.CreateOrOverwriteFile
                     options.feedback = None
-                    Utils.push_info(feedback, f"INFO: Copying layer: {src_layer.name()} ({str(i+1)}/{str(total)})")
+                    Utils.push_info(feedback, f"INFO: Copying layer: {src_layer.name()} ({str(i + 1)}/{str(total)})")
 
                     error, err1, err2, err3 = QgsVectorFileWriter.writeAsVectorFormatV3(layer=src_layer,
-                                              fileName=ctl_file.gpkg_file_name,
-                                              transformContext=transform_context,
-                                              options=options)
+                                                                                fileName=ctl_file.gpkg_file_name,
+                                                                                transformContext=transform_context,
+                                                                                options=options)
 
                 else:
                     Utils.push_info(feedback, f"WARNING: Layer: {src_layer.name()} is not vector ==> Not transferred")
@@ -976,7 +896,7 @@ class Utils:
     @staticmethod
     def manage_service_web(process_type, ctl_file, feedback):
         """
-        This method manages this operations needeed to process a service web.
+        This method manages this operations needed to process a service web.
         """
 
         if ctl_file.service_web:  # if web_service is selected
@@ -1005,7 +925,6 @@ class Utils:
             ctl_file.out_qgs_project_file_en = ""
             ctl_file.out_qgs_project_file_fr = ""
 
-
     @staticmethod
     def copy_download_package_file(process_type, ctl_file, feedback):
         """Copy the download package file in the temp repository
@@ -1017,10 +936,11 @@ class Utils:
                 # Only copy the download package when PUBLISH or UPDATE is selected
                 download_package_in = Path(ctl_file.download_package_file)
                 download_package_name = download_package_in.name
-                ctl_file.out_download_package_file =  os.path.join(ctl_file.control_file_dir, download_package_name)
+                ctl_file.out_download_package_file = os.path.join(ctl_file.control_file_dir, download_package_name)
                 shutil.copy(str(download_package_in), ctl_file.out_download_package_file)
 
-                Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} in the temp repository {ctl_file.control_file_dir}")
+                Utils.push_info(feedback, f"INFO: Copying the download package {ctl_file.download_package_file} " \
+                                          "in the temp repository {ctl_file.control_file_dir}")
             else:
                 # Put "-" as the file name when UNPUBLISH is selected
                 ctl_file.download_package_file = "-"
@@ -1044,7 +964,6 @@ class Utils:
                 if src_layer.type() == QgsMapLayer.VectorLayer:
                     # Only process vector layer
                     if src_layer.type() == QgsMapLayer.VectorLayer:
-
                         qgs_layer_name = src_layer.name()
                         gpkg_layer_name = DdrInfo.get_layer_short_name(src_layer)
                         uri = QgsProviderRegistry.instance().encodeUri('ogr',
@@ -1056,7 +975,7 @@ class Utils:
         _set_layer()
         qgs_project.write(ctl_file.out_qgs_project_file_en)
         qgs_project.clear()
-        if ctl_file.qgs_project_file_fr  != "":
+        if ctl_file.qgs_project_file_fr != "":
             qgs_project.read(ctl_file.out_qgs_project_file_fr)
             _set_layer()
             qgs_project.write(ctl_file.out_qgs_project_file_fr)
@@ -1072,7 +991,7 @@ class Utils:
         # Create the zip file
         lst_file_to_zip = [Path(ctl_file.control_file_name).name]
 
-        #Append the needed files
+        # Append the needed files
         # When the file contains "-" it means that there is no file to copy
         if ctl_file.service_web:  # The service web is selected
             if ctl_file.out_qgs_project_file_en != "-":
@@ -1085,7 +1004,7 @@ class Utils:
         if ctl_file.service_download:  # The service download is selected
             if ctl_file.download_package_file != "-":
                 lst_file_to_zip.append(Path(ctl_file.download_package_file).name)
-            
+
         ctl_file.zip_file_name = os.path.join(ctl_file.control_file_dir, "ddr_publish.zip")
         Utils.push_info(feedback, f"INFO: Creating the zip file: {ctl_file.zip_file_name}")
         with zipfile.ZipFile(ctl_file.zip_file_name, mode="w") as archive:
@@ -1115,7 +1034,8 @@ class Utils:
                 # Sometimes the delete does work the first time so we have to retry the file being busy...
                 try:
                     shutil.rmtree(ctl_file.control_file_dir)
-                    Utils.push_info(feedback, f"INFO: Deleting temporary directory and content: {ctl_file.control_file_dir}")
+                    Utils.push_info(feedback,
+                                    f"INFO: Deleting temporary directory and content: {ctl_file.control_file_dir}")
                     break
                 except Exception:
                     # Wait a little bit... to resolve synchronicity problem
@@ -1145,7 +1065,7 @@ class Utils:
             return cst["core_subject_term"]
 
     @staticmethod
-    def validate_project_file(ctl_file, process_type, parameters, context, feedback):
+    def validate_project_file(ctl_file, process_type, feedback):
         """
 
         """
@@ -1156,7 +1076,7 @@ class Utils:
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)
-                }
+                   }
         data = {
             'operation': process_type.lower()
         }
@@ -1173,9 +1093,10 @@ class Utils:
             response = requests.post(url, files=files, verify=False, headers=headers, data=data)
             ResponseCodes.validate_project_file(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
         return
+
 
 class ResponseCodes(object):
     """This class manages response codes from the DDR API """
@@ -1193,7 +1114,8 @@ class ResponseCodes(object):
             except Exception:
                 pass
         except Exception:
-            raise UserMessageException(f'JSON response for status code {status_code} is missing or badly formed: {json_response}')
+            raise UserMessageException(
+                f'JSON response for status code {status_code} is missing or badly formed: {json_response}')
 
     @staticmethod
     def validate_project_file(feedback, response):
@@ -1244,29 +1166,6 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, 400, "Bad request received on server.")
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Invalid credentials provided.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_download_info(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /czs_themes
-        This method extract the themes from the DDR"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "Reading dataset info based on a given dataset UUID."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_download_info(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
-        elif status == 404:
-            ResponseCodes._push_response(feedback, response, 404, "The requested URI was not found..")
         else:
             description = http.client.responses[status]
             ResponseCodes._push_response(feedback, response, status, description)
@@ -1397,7 +1296,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def unpublish_project_file(feedback, response):
-        """This method manages the response codes for the DDR Unpublisher API DELETE /services
+        """This method manages the response codes for the DDR Unpublished API DELETE /services
            """
 
         status = response.status_code
@@ -1416,7 +1315,7 @@ class ResponseCodes(object):
 
     @staticmethod
     def update_project_file(feedback, response):
-        """This method manages the response codes for the DDR Puplisher API/services
+        """This method manages the response codes for the DDR Publisher API/services
            """
 
         status = response.status_code
@@ -1446,28 +1345,53 @@ class UtilsGui():
         <b>Web service parameters</b>
         <u>Select the English QGIS project file (.qgs)</u>: Select the project file with the ENGLISH layer description.
         <u>Select the French QGIS project file (.qgs)</u>: Select the project file with the French layer description.
-        <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip ship (CZS).
+        <u>Select the CZS theme</u>: Select the theme under which the project will be published in the clip zip \
+        ship (CZS).
         <u>Select the web server</u>: Name of the QGIS server used for the publication of the web service.
         <b>Download service parameters</b>
         <u>Select the download package file</u>: Select the download package file to upload on the FTP server.
-        <u>Select the appropriate core subject term</u>: Select the core subject term associated with this download pacakge.
+        <u>Select the appropriate core subject term</u>: Select the core subject term associated with this \
+        download package.
         <u>Select the download server</u>: Name of the FTP server used for the publication of the download service. 
         <b>Advanced Parameters</b>
         <u>Enter your email address</u>: Email address used to send the notification.
         <u>Keep temporary files (for debug purpose)</u> : Flag (Yes/No) for keeping/deleting temporary files.
         <u>Only validate the <i>publish/update/unpublish</i> action</u> : If checked, the tool will work only in \
         validate mode  in order to see if the selected parameters are accurate (valid).
+        <u>Save the control file</u> : If checked, the control file is written under name defined by the entry: \
+        <i>Select the name of the output control file (.json)</i>. No action is performed but the output file \
+         can be reopened and used later.
+        <u>Select the name of the output control file (.json)</u>: Name of the control file that will be created.
         <b>Note All parameters may not apply to each <i>Publish, Unpublish</i> or <i>Update</i> tool.</b>
     
     """
+
+    HELP_USAGE_EXISTING = """
+            <u>Select an existing control file (.json)</u>: Name of the control file to be read. \
+            The file must be a valid JSON file and must be conform to the schema of the control file.
+            <u>Select the type of action to be performed</u>: Once the control file is read. The selected action \
+            <i>(Publish a service, Unpublish a service or Update a service)</i> will be open.
+
+    """
+
+    HELP_USAGE_LOGIN = """
+                <u>Select a DDR Publication Authentication Configuration or create a new one</u>: Select the \
+                authentication configuration to be used for the login. You can edit an existing configuration \
+                by selecting the "pencil" or delete an existing one by selecting the "minus sign" or add a \
+                configuration by selecting the "plus sign" 
+                <u>Select execution environment</u>: Select the environment (<i>Production, Staging, Dev Test</i>) \
+                into which the execution will be performed (should be production).
+
+        """
 
     @staticmethod
     def add_login(self):
         """Add Login menu"""
 
         self.addParameter(
-            QgsProcessingParameterAuthConfig('AUTHENTICATION', \
-                'Select a DDR Publication Authentication Configuration or create a new one', defaultValue=None))
+           QgsProcessingParameterAuthConfig('AUTHENTICATION',
+                                            'Select a DDR Publication Authentication Configuration or create a new one',
+                                            defaultValue=None))
 
     @staticmethod
     def add_web_service(self, action):
@@ -1478,7 +1402,8 @@ class UtilsGui():
             description=self.tr(f"{action} a web service"),
             defaultValue=False,
             optional=False))
-        parameter.setHelp(f"Check the box if you which to {action} a web service and fill the section 'Web service parameters'")
+        parameter.setHelp(
+            f"Check the box if you which to {action} a web service and fill the section 'Web service parameters'")
 
         self.addParameter(parameter)
 
@@ -1491,12 +1416,13 @@ class UtilsGui():
             description=self.tr(f"{action} a download service"),
             defaultValue=False,
             optional=False))
-        parameter.setHelp(f"Check the box if you which to {action} a download service and fill the section 'Download service parameters'")
+        parameter.setHelp(f"Check the box if you which to {action} a download service and fill the section " 
+                          "'Download service parameters'")
 
         self.addParameter(parameter)
 
     @staticmethod
-    def add_write_ctl_file(self, action=""):
+    def add_write_ctl_file(self):
         """Add Select the check box to save the control file"""
 
         parameter = (QgsProcessingParameterBoolean(
@@ -1527,20 +1453,20 @@ class UtilsGui():
         """Add Select EN and FR project file menu"""
 
         parameter = QgsProcessingParameterFile(
-                name='QGIS_FILE_EN',
-                description='<hr><br><b>Web service parameters</b><br><br>Select the English QGIS project file (.qgs)',
-                extension='qgs',
-                optional=True,
-                behavior=QgsProcessingParameterFile.File)
+            name='QGIS_FILE_EN',
+            description='<hr><br><b>Web service parameters</b><br><br>Select the English QGIS project file (.qgs)',
+            extension='qgs',
+            optional=True,
+            behavior=QgsProcessingParameterFile.File)
         parameter.setHelp(message)
         self.addParameter(parameter)
 
         parameter = QgsProcessingParameterFile(
-                name='QGIS_FILE_FR',
-                description=' Select the French QGIS project file (.qgs)',
-                extension='qgs',
-                optional=True,
-                behavior=QgsProcessingParameterFile.File)
+            name='QGIS_FILE_FR',
+            description=' Select the French QGIS project file (.qgs)',
+            extension='qgs',
+            optional=True,
+            behavior=QgsProcessingParameterFile.File)
         parameter.setHelp(message)
         self.addParameter(parameter)
 
@@ -1606,8 +1532,8 @@ class UtilsGui():
         """Add Select UUID menu"""
 
         str_uuid = ""
-#        import uuid
-#        str_uuid = uuid.uuid4()
+        #        import uuid
+        #        str_uuid = uuid.uuid4()
         self.addParameter(QgsProcessingParameterString(
             name="METADATA_UUID",
             defaultValue=str(str_uuid),
@@ -1662,7 +1588,6 @@ class UtilsGui():
     @staticmethod
     def add_validate(self, action):
         """Add Validate check box"""
-
 
         parameter = (QgsProcessingParameterBoolean(
             name='Validate',
@@ -1777,7 +1702,8 @@ class UtilsGui():
 
         parameter = QgsProcessingParameterFile(
             name='DOWNLOAD_PACKAGE',
-            description=self.tr('<hr><br><b>Download service parameters</b><br><br>Select the download package file (.zip)'),
+            description=self.tr(
+                '<hr><br><b>Download service parameters</b><br><br>Select the download package file (.zip)'),
             behavior=QgsProcessingParameterFile.File,
             extension="zip",
             optional=True,
@@ -1802,9 +1728,6 @@ class UtilsGui():
 
 
 def dispatch_algorithm(self, process_type, parameters, context, feedback):
-
-
-
     # import web_pdb; web_pdb.set_trace()
 
     # Create the control file data structure
@@ -1815,8 +1738,7 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
 
     if ctl_file.bool_ctl_file:
         # Only write the control file and exit the process
-        mng_control_file = ManageControlFile()
-        mng_control_file.write_ctl_file(process_type, ctl_file, SAVE_CTL_FILE, feedback)
+        ManageControlFile.write_ctl_file(process_type, ctl_file, SAVE_CTL_FILE, feedback)
         return
 
     # Init the project files by resetting the layers structures
@@ -1833,7 +1755,7 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     Utils.copy_download_package_file(process_type, ctl_file, feedback)
 
     # Creation of the JSON control file
-    Utils.create_json_control_file(ctl_file, feedback)
+    ManageControlFile.write_ctl_file(process_type, ctl_file, EXECUTE_CTL_FILE, feedback)
 
     # Creation of the ZIP file
     Utils.create_zip_file(ctl_file, feedback)
@@ -1841,16 +1763,16 @@ def dispatch_algorithm(self, process_type, parameters, context, feedback):
     # Validate the project file
     if ctl_file.validate:
         # The action is executed in validate mode
-        Utils.validate_project_file(ctl_file, process_type, parameters, context, feedback)
+        Utils.validate_project_file(ctl_file, process_type, feedback)
     elif process_type == PUBLISH:
         # Publish the project file
-        DdrPublishService.publish_project_file(ctl_file, parameters, context, feedback)
+        DdrPublishService.publish_project_file(ctl_file, feedback)
     elif process_type == UNPUBLISH:
         # Unpublish the project file
-        DdrUnpublishService.unpublish_project_file(ctl_file, parameters, context, feedback)
+        DdrUnpublishService.unpublish_project_file(ctl_file, feedback)
     elif process_type == "UPDATE":
         # Update the project file
-        DdrUpdateService.update_project_file(ctl_file, parameters, context, feedback)
+        DdrUpdateService.update_project_file(ctl_file, feedback)
     else:
         raise UserMessageException(f"Internal error. Unknown Process Type: {process_type}")
 
@@ -1910,7 +1832,7 @@ class DdrPublishService(QgsProcessingAlgorithm):
         """
         help_str = """
     The processing tool <i>Publish a service</i>  allows to publish a web services and or a download service. When \
-    publishing a web service,  the geospatial layers stored in the .qgs project files (FR and EN) are transfered to \
+    publishing a web service,  the geospatial layers stored in the .qgs project files (FR and EN) are transferred to \
     the DDR and are available as a web map service (WMS).  When publishing a download service the zip file is \
     copied into the FTP site and is available as a download service. A message is displayed in the log and an \
     email is sent to the user informing the latter on the status of the publication."""
@@ -1967,60 +1889,66 @@ class DdrPublishService(QgsProcessingAlgorithm):
         # Create the control file data structure
         control_file = ControlFile()
 
-        UtilsGui.read_parameters(self, control_file, parameters, context )
+        UtilsGui.read_parameters(self, control_file, parameters, context)
 
         # At least Web Service or Download Service check box must be selected
         if not control_file.service_web and not control_file.service_download:
             message = "You must at least select one of the following service:\n"
             message += "   - Publish web service\n"
             message += "   - Publish download service"
-            return (False, message)
+            return False, message
 
         # If Web service is selected some web parameters must be selected
         if control_file.service_web:
             if control_file.qgs_project_file_en == "" or \
-                control_file.qgs_project_file_fr == "" or \
-                control_file.qgs_server_id == "":
+                    control_file.qgs_project_file_fr == "" or \
+                    control_file.qgs_server_id == "":
                 message = "When selecting Publish web service, you must fill the following parameters: \n"
                 message += "   - Select the English QGIS project file \n"
                 message += "   - Select the French QGIS project file \n"
                 message += "   - Select the web server"
-                return (False, message)
+                return False, message
         else:
             if control_file.qgs_project_file_en != "" or \
-                control_file.qgs_project_file_fr != "":
+                    control_file.qgs_project_file_fr != "":
                 message = "Publish a web service is not selected, the following parameters must be empty: \n"
                 message += "   - Select the English QGIS project file \n"
                 message += "   - Select the French QGIS project file"
-                return (False, message)
+                return False, message
 
         # If Download service is selected some download parameters must be selected
         if control_file.service_download:
-            if control_file.download_package_file== "" or \
+            if control_file.download_package_file == "" or \
                     control_file.core_subject_term == "" or \
                     control_file.download_info_id == "":
                 message = "When selecting publish download service, you must fill the following parameters: \n"
                 message += "   - Select the download package file \n"
                 message += "   - Select the appropriate core subject term \n"
                 message += "   - Select the download server"
-                return (False, message)
+                return False, message
         else:
-            if control_file.download_package_file!= "":
+            if control_file.download_package_file != "":
                 message = "Publish a download service is not selected, the following parameter must be empty: \n"
                 message += "   - Select the download package file"
-                return (False, message)
+                return False, message
 
-        # In advanced parameters, once cannot select Validate and Write control file at the same time
+        # In advanced parameters, cannot select Validate and Save control file at the same time
         if control_file.validate and control_file.bool_ctl_file:
-            message = "In Advanced Parameters Section,you cannot select at the same time: \n"
+            message = "In Advanced Parameters Section, you cannot select at the same time: \n"
             message += "    - Only validate the update action \n"
             message += "    - Save the control file"
-            return (False, message)
+            return False, message
 
-        return (True, "")
+        # In advanced parameters, if Write control file is selected a Select the control file must be fill
+        if control_file.bool_ctl_file and control_file.output_ctl_file == "":
+            message = "In Advanced Parameters Section, if you select 'Save the control file' \n"
+            message += "you must specify a name in 'Select the name of the output file'. "
+            return False, message
+
+        return True, ""
 
     @staticmethod
-    def publish_project_file(ctl_file, parameters, context, feedback):
+    def publish_project_file(ctl_file, feedback):
         """"""
 
         url = DdrInfo.get_http_environment()
@@ -2129,9 +2057,7 @@ class DdrUpdateService(QgsProcessingAlgorithm):
 
         # Web service parameters
         message = "Mandatory if you choose to update a web service"
-        message_opt = "Optional even if you choose to update a web service"
         UtilsGui.add_qgis_file(self, message)
-
 
         # Download service parameters
         message = "Mandatory if you choose to update a download service"
@@ -2153,54 +2079,54 @@ class DdrUpdateService(QgsProcessingAlgorithm):
         # Create the control file data structure
         ctl_file = ControlFile()
 
-        UtilsGui.read_parameters(self, ctl_file, parameters, context )
+        UtilsGui.read_parameters(self, ctl_file, parameters, context)
 
         # At least Web Service or Download Service check box must be selected
         if not ctl_file.service_web and not ctl_file.service_download:
             message = "You must at least select one of the following service:\n"
             message += "   - Publish web service\n"
             message += "   - Publish download service"
-            return (False, message)
+            return False, message
 
         # If Web service is selected some web parameters must be selected
         if ctl_file.service_web:
             if ctl_file.qgs_project_file_en == "" or \
-                ctl_file.qgs_project_file_fr == "":
+                    ctl_file.qgs_project_file_fr == "":
                 message = "When selecting Publish web service, you must fill the following parameters: \n"
                 message += "   - Select the English QGIS project file \n"
                 message += "   - Select the French QGIS project file"
-                return (False, message)
+                return False, message
         else:
             if ctl_file.qgs_project_file_en != "" or \
-                ctl_file.qgs_project_file_fr != "":
+                    ctl_file.qgs_project_file_fr != "":
                 message = "Publish a web service is not selected, the following parameters must be empty: \n"
                 message += "   - Select the English QGIS project file \n"
                 message += "   - Select the French QGIS project file"
-                return (False, message)
+                return False, message
 
         # If Download service is selected some download parameters must be selected
         if ctl_file.service_download:
             if ctl_file.download_package_file == "":
                 message = "When selecting publish download service, you must fill the following parameter: \n"
                 message += "   - Select the download package file"
-                return (False, message)
+                return False, message
         else:
             if ctl_file.download_package_file != "":
                 message = "Publish a download service is not selected, the following parameter must be empty: \n"
                 message += "   - Select the download package file"
-                return (False, message)
+                return False, message
 
         # In advanced parameters, once cannot select Validate and Write control file at the same time
         if ctl_file.validate and ctl_file.bool_ctl_file:
             message = "In Advanced Parameters Section,you cannot select at the same time: \n"
             message += "    - Only validate the update action \n"
             message += "    - Save the control file"
-            return (False, message)
+            return False, message
 
-        return (True, "")
+        return True, ""
 
     @staticmethod
-    def update_project_file(ctl_file, parameters, context, feedback):
+    def update_project_file(ctl_file, feedback):
         """"""
 
         url = DdrInfo.get_http_environment()
@@ -2218,7 +2144,7 @@ class DdrUpdateService(QgsProcessingAlgorithm):
             response = requests.patch(url, files=files, verify=False, headers=headers)
             ResponseCodes.update_project_file(feedback, response)
 
-        except requests.exceptions.RequestException as e:
+        except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
 
         return
@@ -2274,7 +2200,8 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | \
+                                 QgsProcessingAlgorithm.Available
 
     def shortHelpString(self):
         """Returns a localised short help string for the algorithm.
@@ -2317,7 +2244,7 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         UtilsGui.add_output_ctl_file(self)
 
     @staticmethod
-    def unpublish_project_file(ctl_file, parameters, context, feedback):
+    def unpublish_project_file(ctl_file, feedback):
         """Unpublish a QGIS project file """
 
         url = DdrInfo.get_http_environment()
@@ -2346,7 +2273,7 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         # Create the control file data structure
         control_file = ControlFile()
 
-        UtilsGui.read_parameters(self, control_file, parameters, context )
+        UtilsGui.read_parameters(self, control_file, parameters, context)
 
         # At least Web Service or Download Service check box must be selected
         if not control_file.service_web and not control_file.service_download:
@@ -2361,7 +2288,6 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
             message += "    - Only validate the update action \n"
             message += "    - Save the control file"
             return (False, message)
-
 
         return True, ""
 
@@ -2402,7 +2328,8 @@ class DdrLogin(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.Available
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | \
+               QgsProcessingAlgorithm.Available
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
@@ -2427,7 +2354,7 @@ class DdrLogin(QgsProcessingAlgorithm):
         mandatory before  doing any management operation: publish, update, unpublish or validate. 
         """
 
-        help_str = help_str + UtilsGui.HELP_USAGE
+        help_str = help_str + UtilsGui.HELP_USAGE_LOGIN
 
         return self.tr(help_str)
 
@@ -2487,13 +2414,13 @@ class DdrLogin(QgsProcessingAlgorithm):
             (username, password) = self.read_parameters(ctl_file, parameters, context, feedback)
 
             # Create the access tokens needed for the API call
-            Utils.create_access_tokens(username, password, ctl_file, feedback)
+            Utils.create_access_tokens(username, password, feedback)
 
-            Utils.read_czs_themes(ctl_file, feedback)
-            Utils.read_ddr_departments(ctl_file, feedback)
-            Utils.read_user_email(ctl_file, feedback)
-            Utils.read_downloads(ctl_file, feedback)
-            Utils.read_servers(ctl_file, feedback)
+            Utils.read_czs_themes(feedback)
+            Utils.read_ddr_departments(feedback)
+            Utils.read_user_email(feedback)
+            Utils.read_downloads(feedback)
+            Utils.read_servers(feedback)
 
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
@@ -2525,7 +2452,8 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
-        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | QgsProcessingAlgorithm.FlagHideFromToolbox
+        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | \
+                                 QgsProcessingAlgorithm.FlagHideFromToolbox
 
     def displayName(self):  # pylint: disable=no-self-use
         """Returns the translated algorithm name.
@@ -2579,31 +2507,6 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         Utils.push_info(feedback, f"INFO: Execution environment: {environment}")
         DdrInfo.add_environment(environment)
 
-#        # Enable the extraction of the password when working in the testing or mocking environment
-#        if environment == "Testing":
-#            authMgr = QgsApplication.authManager()
-#            authMgr.setMasterPassword("MasterPass123$", verify=True)
-#
-#        # Get the application's authentication manager
-#        auth_mgr = QgsApplication.authManager()
-#
-#        # Create an empty QgsAuthMethodConfig object
-#        auth_cfg = QgsAuthMethodConfig()
-#
-#        # Load config from manager to the new config instance and decrypt sensitive data
-#        auth_mgr.loadAuthenticationConfig(auth_method, auth_cfg, True)
-#
-#        # Get the configuration information (including username and password)
-#        auth_cfg.configMap()
-#        auth_info = auth_cfg.configMap()
-#
-#        try:
-#            username = auth_info['username']
-#            password = auth_info['password']
-#        except KeyError:
-#            raise UserMessageException("Unable to extract username/password from QGIS "
-#                                       "authentication system")
-
         return username, password
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -2616,13 +2519,13 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
             (username, password) = self.read_parameters(ctl_file, parameters, context, feedback)
 
             # Create the access tokens needed for the API call
-            Utils.create_access_tokens(username, password, ctl_file, feedback)
+            Utils.create_access_tokens(username, password, feedback)
 
-            Utils.read_czs_themes(ctl_file, feedback)
-            Utils.read_ddr_departments(ctl_file, feedback)
-            Utils.read_user_email(ctl_file, feedback)
-            Utils.read_downloads(ctl_file, feedback)
-            Utils.read_servers(ctl_file, feedback)
+            Utils.read_czs_themes(feedback)
+            Utils.read_ddr_departments(feedback)
+            Utils.read_user_email(feedback)
+            Utils.read_downloads(feedback)
+            Utils.read_servers(feedback)
 
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
@@ -2678,7 +2581,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
     The processing tool <i>Use existing control file</i> allows to use an already created control file in \
     order to </i>Publish/Update/Unpublish</i> services."""
 
-        help_str += UtilsGui.HELP_USAGE
+        help_str += UtilsGui.HELP_USAGE_EXISTING
 
         return self.tr(help_str)
 
@@ -2698,16 +2601,6 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         UtilsGui.add_action_to_perform(self)
 
         return
-
-    def checkParameterValues(self, parameters, context):
-        """Check if the selection of the input parameters is valid"""
-
-        # Create the control file data structure
-        # control_file = ControlFile()
-
-        # UtilsGui.read_parameters(self, control_file, parameters, context )
-
-        return (True, "")
 
     def processAlgorithm(self, parameters, context, feedback):
         """Main method that extract parameters and call Simplify algorithm.
@@ -2791,21 +2684,21 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         # Set parameters to update a service
         if ctl_file.action_to_perform == UPDATE:
             algo_name = "pub_ddr_processing:update_service"
-            parameter = { 'distance_units': 'meters',
-                          'area_units': 'm2',
-                          'ellipsoid': 'EPSG:7030',
-                          'DEPARTMENT':  mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
-                          'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
-                          'SERVICE_WEB': mng_ctl_file.update_service_web,
-                          'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
-                          'QGIS_FILE_EN': __get_project_file_name(ENGLISH),
-                          'QGIS_FILE_FR': __get_project_file_name(FRENCH),
-                          'DOWNLOAD_PACKAGE': __get_download_package_name(),
-                          'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
-                          'KEEP_FILES': 'No',
-                          'Validate': 'false',
-                          'WRITE_CTL_FILE': 'false',
-                          'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
+            parameter = {'distance_units': 'meters',
+                         'area_units': 'm2',
+                         'ellipsoid': 'EPSG:7030',
+                         'DEPARTMENT': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][DEPARTMENT],
+                         'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
+                         'SERVICE_WEB': mng_ctl_file.update_service_web,
+                         'SERVICE_DOWNLOAD': mng_ctl_file.update_service_download,
+                         'QGIS_FILE_EN': __get_project_file_name(ENGLISH),
+                         'QGIS_FILE_FR': __get_project_file_name(FRENCH),
+                         'DOWNLOAD_PACKAGE': __get_download_package_name(),
+                         'EMAIL': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][EMAIL],
+                         'KEEP_FILES': 'No',
+                         'Validate': 'false',
+                         'WRITE_CTL_FILE': 'false',
+                         'OUTPUT_CTL_FILE': ctl_file.existing_ctl_file}
 
         # Set parameters to publish a service
         if ctl_file.action_to_perform == PUBLISH:
@@ -2821,7 +2714,7 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
                          'METADATA_UUID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][METADATA_UUID],
                          'QGIS_FILE_EN': __get_project_file_name(ENGLISH),
                          'QGIS_FILE_FR': __get_project_file_name(FRENCH),
-                         'CZS_THEMES':  theme_title,
+                         'CZS_THEMES': theme_title,
                          'QGS_SERVER_ID': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][QGIS_SERVER_ID],
                          'DOWNLOAD_PACKAGE': __get_download_package_name(),
                          'CORE_SUBJECT_TERM': mng_ctl_file.ctl_file[GENERIC_PARAMETERS][CORE_SUBJECT_TERM],
@@ -2835,55 +2728,5 @@ class DdrExistingCtlFile(QgsProcessingAlgorithm):
         # Execute the requested action
         action = processing.createAlgorithmDialog(algo_name, parameter)
         action.exec_()
-
-#        print(parameter)
-#        action = processing.createAlgorithmDialog( algo_name, parameter)
-
-#        action.exec_()
-
-#        my_dialog = processing.createAlgorithmDialog("native:buffer", {
-#            'INPUT': '/data/lines.shp',
-#            'DISTANCE': 100.0,
-#            'SEGMENTS': 10,
-#            'DISSOLVE': True,
-#            'END_CAP_STYLE': 0,
-#            'JOIN_STYLE': 0,
-#            'MITER_LIMIT': 10,
-#            'OUTPUT': '/data/buffers.shp'})
-#        my_dialog.exec_()
-        #my_dialog.show()
-        #pub = DdrPublishService()
-        #id = pub.id()
-        #print ("id: ", id)
-        #provider = self.provider()
-        #print ("provider: ", provider.algorithms())
-        #algo = provider.algorithm("publish_service")
-        #registry = QgsProcessingRegistry()
-        #algo_reg = registry.algorithmById(id)
-        #print ("toto1")
-        #print("algo: ", algo)
-        #print("algo_reg: ", algo_reg)
-        #print ("info:", registry.algorithms())
-        #print("toto2")
- #       algo_to_execute = DdrUnpublishService()
- #       parameters = {'DEPARTMENT': 'nrcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
- #                       'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False}
-        #print ("run: ", algo_reg.run(parameters, QgsProcessingContext(), feedback))
-        #algo_to_execute.create(parameters)
-        #algo_to_execute.run(parameters, context, feedback)
-        #prepared = algo_to_execute.prepareAlgorithm(parameters, context, feedback)
-        #print ("Prepared: ", prepared)
-        #algo_to_execute.runPrepared(parameters, context, feedback)
-        #algo_to_execute.initAlgorithm(parameters)
-        #algo_to_execute.processAlgorithm(parameters, context, feedback)
-        #processing.run("pub_ddr_processing:unpublish_service",
-        #               {'DEPARTMENT': 'n rcan', 'METADATA_UUID': 'aaa', 'SERVICE_WEB': True, 'SERVICE_DOWNLOAD': True,
-        #                'EMAIL': 'daniel.pilon@nrcan-rncan.gc.ca', 'KEEP_FILES': 'No', 'Validate': False})
-        #print ("context: ", context)
-        #try:
-        #    dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
-        #except UserMessageException as e:
-        #    Utils.push_info(feedback, f"ERROR: Publish process")
-        #    Utils.push_info(feedback, f"ERROR: {str(e)}")
 
         return {}
