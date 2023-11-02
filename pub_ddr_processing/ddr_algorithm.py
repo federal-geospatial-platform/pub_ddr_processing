@@ -1661,6 +1661,106 @@ class UtilsGui():
         self.addParameter(parameter)
 
     @staticmethod
+    def check_parameter_values(self, process, parameters, context):
+        """
+
+        """
+
+        # Create the control file data structure
+        control_file = ControlFile()
+        UtilsGui.read_parameters(self, control_file, parameters, context)
+
+        # At least Web Service or Download Service check box must be selected
+        if not control_file.service_web and not control_file.service_download:
+            message = "You must at least select one of the following service:\n"
+            message += "   - Publish web service\n"
+            message += "   - Publish download service"
+            return False, message
+
+        if process == PUBLISH:
+            # If Web service is selected some web parameters must be selected
+            if control_file.service_web:
+                if control_file.qgs_project_file_en == "" or \
+                        control_file.qgs_project_file_fr == "" or \
+                        control_file.qgs_server_id == "":
+                    message = "When selecting Publish web service, you must fill the following parameters: \n"
+                    message += "   - Select the English QGIS project file \n"
+                    message += "   - Select the French QGIS project file \n"
+                    message += "   - Select the web server"
+                    return False, message
+            else:
+                if control_file.qgs_project_file_en != "" or \
+                        control_file.qgs_project_file_fr != "":
+                    message = "Publish a web service is not selected, the following parameters must be empty: \n"
+                    message += "   - Select the English QGIS project file \n"
+                    message += "   - Select the French QGIS project file"
+                    return False, message
+
+        if process == UPDATE:
+            # If Web service is selected some web parameters must be selected
+            if control_file.service_web:
+                if control_file.qgs_project_file_en == "" or \
+                        control_file.qgs_project_file_fr == "":
+                    message = "When selecting Publish web service, you must fill the following parameters: \n"
+                    message += "   - Select the English QGIS project file \n"
+                    message += "   - Select the French QGIS project file"
+                    return False, message
+            else:
+                if control_file.qgs_project_file_en != "" or \
+                        control_file.qgs_project_file_fr != "":
+                    message = "Publish a web service is not selected, the following parameters must be empty: \n"
+                    message += "   - Select the English QGIS project file \n"
+                    message += "   - Select the French QGIS project file"
+                    return False, message
+
+        if process == PUBLISH:
+            # If Download service is selected some download parameters must be selected
+            if control_file.service_download:
+                if control_file.download_package_file == "" or \
+                        control_file.core_subject_term == "" or \
+                        control_file.download_info_id == "":
+                    message = "When selecting publish download service, you must fill the following parameters: \n"
+                    message += "   - Select the download package file \n"
+                    message += "   - Select the appropriate core subject term \n"
+                    message += "   - Select the download server"
+                    return False, message
+            else:
+                if control_file.download_package_file != "":
+                    message = "Publish a download service is not selected, the following parameter must be empty: \n"
+                    message += "   - Select the download package file"
+                    return False, message
+
+        if process == UPDATE:
+            # If Download service is selected some download parameters must be selected
+            if control_file.service_download:
+                if control_file.download_package_file == "" or \
+                        control_file.core_subject_term == "":
+                    message = "When selecting publish download service, you must fill the following parameters: \n"
+                    message += "   - Select the download package file \n"
+                    message += "   - Select the appropriate core subject term"
+                    return False, message
+            else:
+                if control_file.download_package_file != "":
+                    message = "Publish a download service is not selected, the following parameter must be empty: \n"
+                    message += "   - Select the download package file"
+                    return False, message
+
+        # In advanced parameters, cannot select Validate and Save control file at the same time
+        if control_file.validate and control_file.bool_ctl_file:
+            message = "In Advanced Parameters Section, you cannot select at the same time: \n"
+            message += "    - Only validate the update action \n"
+            message += "    - Save the control file"
+            return False, message
+
+        # In advanced parameters, if Write control file is selected a Select the control file must be fill
+        if control_file.bool_ctl_file and control_file.output_ctl_file == "":
+            message = "In Advanced Parameters Section, if you select 'Save the control file' \n"
+            message += "you must specify a name in 'Select the name of the output file'. "
+            return False, message
+
+        return True, ""
+
+    @staticmethod
     def read_parameters(self, ctl_file, parameters, context):
 
         ctl_file.service_web = self.parameterAsBool(parameters, 'SERVICE_WEB', context)
@@ -1886,66 +1986,10 @@ class DdrPublishService(QgsProcessingAlgorithm):
     def checkParameterValues(self, parameters, context):
         """Check if the selection of the input parameters is valid"""
 
-        # Create the control file data structure
-        control_file = ControlFile()
+        # Validate the input parameters
+        status, message = UtilsGui.check_parameter_values(self, PUBLISH, parameters, context)
 
-        UtilsGui.read_parameters(self, control_file, parameters, context)
-
-        # At least Web Service or Download Service check box must be selected
-        if not control_file.service_web and not control_file.service_download:
-            message = "You must at least select one of the following service:\n"
-            message += "   - Publish web service\n"
-            message += "   - Publish download service"
-            return False, message
-
-        # If Web service is selected some web parameters must be selected
-        if control_file.service_web:
-            if control_file.qgs_project_file_en == "" or \
-                    control_file.qgs_project_file_fr == "" or \
-                    control_file.qgs_server_id == "":
-                message = "When selecting Publish web service, you must fill the following parameters: \n"
-                message += "   - Select the English QGIS project file \n"
-                message += "   - Select the French QGIS project file \n"
-                message += "   - Select the web server"
-                return False, message
-        else:
-            if control_file.qgs_project_file_en != "" or \
-                    control_file.qgs_project_file_fr != "":
-                message = "Publish a web service is not selected, the following parameters must be empty: \n"
-                message += "   - Select the English QGIS project file \n"
-                message += "   - Select the French QGIS project file"
-                return False, message
-
-        # If Download service is selected some download parameters must be selected
-        if control_file.service_download:
-            if control_file.download_package_file == "" or \
-                    control_file.core_subject_term == "" or \
-                    control_file.download_info_id == "":
-                message = "When selecting publish download service, you must fill the following parameters: \n"
-                message += "   - Select the download package file \n"
-                message += "   - Select the appropriate core subject term \n"
-                message += "   - Select the download server"
-                return False, message
-        else:
-            if control_file.download_package_file != "":
-                message = "Publish a download service is not selected, the following parameter must be empty: \n"
-                message += "   - Select the download package file"
-                return False, message
-
-        # In advanced parameters, cannot select Validate and Save control file at the same time
-        if control_file.validate and control_file.bool_ctl_file:
-            message = "In Advanced Parameters Section, you cannot select at the same time: \n"
-            message += "    - Only validate the update action \n"
-            message += "    - Save the control file"
-            return False, message
-
-        # In advanced parameters, if Write control file is selected a Select the control file must be fill
-        if control_file.bool_ctl_file and control_file.output_ctl_file == "":
-            message = "In Advanced Parameters Section, if you select 'Save the control file' \n"
-            message += "you must specify a name in 'Select the name of the output file'. "
-            return False, message
-
-        return True, ""
+        return status, message
 
     @staticmethod
     def publish_project_file(ctl_file, feedback):
@@ -2076,54 +2120,10 @@ class DdrUpdateService(QgsProcessingAlgorithm):
     def checkParameterValues(self, parameters, context):
         """Check if the selection of the input parameters is valid"""
 
-        # Create the control file data structure
-        ctl_file = ControlFile()
+        # Validate the input parameters
+        status, message = UtilsGui.check_parameter_values(self, UPDATE, parameters, context)
 
-        UtilsGui.read_parameters(self, ctl_file, parameters, context)
-
-        # At least Web Service or Download Service check box must be selected
-        if not ctl_file.service_web and not ctl_file.service_download:
-            message = "You must at least select one of the following service:\n"
-            message += "   - Publish web service\n"
-            message += "   - Publish download service"
-            return False, message
-
-        # If Web service is selected some web parameters must be selected
-        if ctl_file.service_web:
-            if ctl_file.qgs_project_file_en == "" or \
-                    ctl_file.qgs_project_file_fr == "":
-                message = "When selecting Publish web service, you must fill the following parameters: \n"
-                message += "   - Select the English QGIS project file \n"
-                message += "   - Select the French QGIS project file"
-                return False, message
-        else:
-            if ctl_file.qgs_project_file_en != "" or \
-                    ctl_file.qgs_project_file_fr != "":
-                message = "Publish a web service is not selected, the following parameters must be empty: \n"
-                message += "   - Select the English QGIS project file \n"
-                message += "   - Select the French QGIS project file"
-                return False, message
-
-        # If Download service is selected some download parameters must be selected
-        if ctl_file.service_download:
-            if ctl_file.download_package_file == "":
-                message = "When selecting publish download service, you must fill the following parameter: \n"
-                message += "   - Select the download package file"
-                return False, message
-        else:
-            if ctl_file.download_package_file != "":
-                message = "Publish a download service is not selected, the following parameter must be empty: \n"
-                message += "   - Select the download package file"
-                return False, message
-
-        # In advanced parameters, once cannot select Validate and Write control file at the same time
-        if ctl_file.validate and ctl_file.bool_ctl_file:
-            message = "In Advanced Parameters Section,you cannot select at the same time: \n"
-            message += "    - Only validate the update action \n"
-            message += "    - Save the control file"
-            return False, message
-
-        return True, ""
+        return status, message
 
     @staticmethod
     def update_project_file(ctl_file, feedback):
@@ -2270,26 +2270,10 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         """Check if the selection of the input parameters is valid
         """
 
-        # Create the control file data structure
-        control_file = ControlFile()
+        # Validate the input parameters
+        status, message = UtilsGui.check_parameter_values(self, UNPUBLISH, parameters, context)
 
-        UtilsGui.read_parameters(self, control_file, parameters, context)
-
-        # At least Web Service or Download Service check box must be selected
-        if not control_file.service_web and not control_file.service_download:
-            message = "You must at least select one of the following service:\n"
-            message += "   - Unpublish web service\n"
-            message += "   - Unpublish download service"
-            return False, message
-
-        # In advanced parameters, once cannot select Validate and Write control file at the same time
-        if control_file.validate and control_file.bool_ctl_file:
-            message = "In Advanced Parameters Section,you cannot select at the same time: \n"
-            message += "    - Only validate the update action \n"
-            message += "    - Save the control file"
-            return (False, message)
-
-        return True, ""
+        return status, message
 
     def processAlgorithm(self, parameters, context, feedback):
         """Main method that extract parameters and call Simplify algorithm.
