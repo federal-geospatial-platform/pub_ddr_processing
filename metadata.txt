@@ -7,7 +7,7 @@ name=DDR Publication (processing)
 qgisMinimumVersion=3.22
 qgisMaximumVersion=3.28
 description=This plugin allows to publish, unpublish, update and validate a collection with the DDR.
-version=1.2.0
+version=1.2.1
 author=Natural Resources Canada
 email=nrcan.qgis-plugins.rncan@canada.ca
 
@@ -51,6 +51,8 @@ changelog=
         - Adjustement of the documentation
     1.2.0 2023-11-01
         - The plugin can read and write JSON control file
+    1.2.1 2023-11-02
+        - Refactoring of the methods to check the parameter values
 
 
 # Tags are comma separated with spaces allowed
