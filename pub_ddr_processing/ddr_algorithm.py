@@ -694,6 +694,15 @@ class DdrInfo(object):
 
 
 class Utils:
+
+    # Define the URL suffix for the APIs
+    API_CZS_THEMES = "/czs_themes"
+    API_DDR_DEPARTMENT = "/ddr_registry_departments"
+    API_PUBLISHER_EMAIL = "/ddr_registry_my_publisher_email"
+    API_REGISTRY_DOWNLOADS = "/ddr_registry_downloads"
+    API_REGISTRY_SERVERS = "/ddr_registry_servers"
+    API_VALIDATE_CTL_FILE = "/validate"
+
     """Contains a list of static methods"""
 
     @staticmethod
@@ -706,82 +715,36 @@ class Utils:
         return date_time
 
     @staticmethod
-    def read_czs_themes(feedback):
-        """Read the CSZ themes from the service end point"""
+    def read_api(api_name, feedback):
+        """Read the content of an API and manage exception
+        """
+
+        def post_get_requests():
+            """Specific response code extraction to perform after reading the content of the API
+            """
+
+            if api_name == Utils.API_CZS_THEMES:
+                ResponseCodes.process_response_code(Utils.API_CZS_THEMES, feedback, response)
+            elif api_name == Utils.API_DDR_DEPARTMENT:
+                ResponseCodes.process_response_code(Utils.API_DDR_DEPARTMENT, feedback, response)
+            elif api_name == Utils.API_PUBLISHER_EMAIL:
+                ResponseCodes.process_response_code(Utils.API_PUBLISHER_EMAIL, feedback, response)
+            elif api_name == Utils.API_REGISTRY_DOWNLOADS:
+                ResponseCodes.process_response_code(Utils.API_REGISTRY_DOWNLOADS, feedback, response)
+            elif api_name == Utils.API_REGISTRY_SERVERS:
+                ResponseCodes.process_response_code(Utils.API_REGISTRY_SERVERS, feedback, response)
+            else:
+                raise UserMessageException(f"Internal error")
 
         url = DdrInfo.get_http_environment()
-        url += "/czs_themes"
+        url += api_name
         headers = {'accept': 'application/json',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
+
         try:
             Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
             response = requests.get(url, verify=False, headers=headers)
-            ResponseCodes.read_csz_theme(feedback, response)
-
-        except requests.exceptions.RequestException:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-    @staticmethod
-    def read_ddr_departments(feedback):
-        """Read the DDR departments that the currently logged in User/Publisher has access to
-           from the service endpoint"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/ddr_registry_departments"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        try:
-            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-            response = requests.get(url, verify=False, headers=headers)
-            ResponseCodes.read_ddr_departments(feedback, response)
-
-        except requests.exceptions.RequestException:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-    @staticmethod
-    def read_user_email(feedback):
-        """Read the User Email from the service end point"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/ddr_registry_my_publisher_email"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        try:
-            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-            response = requests.get(url, verify=False, headers=headers)
-            ResponseCodes.read_user_email(feedback, response)
-
-        except requests.exceptions.RequestException:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-    @staticmethod
-    def read_downloads(feedback):
-        """Read the  downloads that the currently logged in User/Publisher has access to from the service end point"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/ddr_registry_downloads"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        try:
-            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-            response = requests.get(url, verify=False, headers=headers)
-            ResponseCodes.read_downloads(feedback, response)
-
-        except requests.exceptions.RequestException:
-            raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
-
-    @staticmethod
-    def read_servers(feedback):
-        """Read the Servers from the service end point"""
-
-        url = DdrInfo.get_http_environment()
-        url += "/ddr_registry_servers"
-        headers = {'accept': 'application/json',
-                   'Authorization': 'Bearer ' + LoginToken.get_token(feedback)}
-        try:
-            Utils.push_info(feedback, f"INFO: HTTP Put Request: {url}")
-            response = requests.get(url, verify=False, headers=headers)
-            ResponseCodes.read_servers(feedback, response)
+            post_get_requests()
 
         except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
@@ -1072,7 +1035,7 @@ class Utils:
 
         # import web_pdb; web_pdb.set_trace()
         url = DdrInfo.get_http_environment()
-        url += "/validate"
+        url += Utils.API_VALIDATE_CTL_FILE
         headers = {'accept': 'application/json',
                    'charset': 'utf-8',
                    'Authorization': 'Bearer ' + LoginToken.get_token(feedback)
@@ -1091,7 +1054,7 @@ class Utils:
         try:
             Utils.push_info(feedback, "INFO: HTTP Post Request: ", url)
             response = requests.post(url, files=files, verify=False, headers=headers, data=data)
-            ResponseCodes.validate_project_file(feedback, response)
+            ResponseCodes.process_response_code(Utils.VALIDATE_PROCESS_CODE, feedback, response)
 
         except requests.exceptions.RequestException:
             raise UserMessageException(f"Major problem with the DDR Publication API: {url}")
@@ -1118,25 +1081,131 @@ class ResponseCodes(object):
                 f'JSON response for status code {status_code} is missing or badly formed: {json_response}')
 
     @staticmethod
-    def validate_project_file(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Post /validate
-        This API validates if a project is compliant when a project is complain it can be published/unpublished"""
+    def process_response_code(response_code_name, feedback, response):
+        """This method process all response code. Specific code is added in order to process specificity of each
+        response code."""
 
-        status = response.status_code
-        if status == 200:
+        def process_czs_themes():
+            """This method manages the response codes for the DDR Publisher API Get /czs_themes
+               This method extract the themes from the DDR"""
+
+            msg = "Reading the available Clip Zip Ship Themes."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            DdrInfo.add_themes(json_response)
+
+            return
+
+        def process_ddr_departments():
+            """This method manages the response codes for the DDR Publisher API Get /czs_departments
+               This method extract the departments from the DDR"""
+
+            msg = "Reading the available DDR departments."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            DdrInfo.add_departments(json_response)
+
+            return
+
+        def process_publisher_email():
+            """This method manages the response codes for the DDR Publisher API Get /ddr_my_email
+               This method extract the email associated with user login"""
+
+            msg = "Reading the user email."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            DdrInfo.add_email(json_response)
+
+            return
+
+        def process_registry_downloads():
+            """This method manages the response codes for the DDR Publisher API Get /ddr_downloads
+               This method extract the downloads associated with user login"""
+
+            msg = "The list of DDR Registry Downloads."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            DdrInfo.add_downloads(json_response)
+
+        def process_registry_servers():
+            """This method manages the response codes for the DDR Publisher API Get /ddr_servers
+               This method extract the downloads associated with user login"""
+
+            msg = "The list of DDR Registry Servers."
+            Utils.push_info(feedback, f"INFO: {msg}")
+            DdrInfo.add_servers(json_response)
+
+        @staticmethod
+        def process_validate_service():
+            """This method manages the response codes for the DDR Publisher API Post /validate
+            This API validates if a project is compliant when a project is complain it can be published/unpublished"""
+
             json_response = response.json()
             results = json.dumps(json_response, indent=4, ensure_ascii=False)
             Utils.push_info(feedback, "INFO: ", "200 - Validation is successful")
             Utils.push_info(feedback, "INFO: ", results, pad_with_dot=True)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access token does not have the required scope.")
-        elif status == 500:
-            ResponseCodes._push_response(feedback, response, 500, "Internal error.")
+
+        def process_error_code():
+
+            if status_code in lst_status_code:
+                # The status code is included in the list of possible status code
+                if status_code == 401:
+                    ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
+                elif status_code == 403:
+                    ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
+                elif status_code == 500:
+                    ResponseCodes._push_response(feedback, response, 500, "Internal error.")
+            else:
+                # The status code is not in the list of status code to process
+                raise UserMessageException(f"Internal error. Unhandle status code: {status_code}")
+
+        status_code = response.status_code
+        if response_code_name == Utils.API_CZS_THEMES:
+            process_to_execute = process_czs_themes
+            lst_status_code = [401, 403]
+        elif response_code_name == Utils.API_DDR_DEPARTMENT:
+            process_to_execute = process_ddr_departments
+            lst_status_code = [401, 403]
+        elif response_code_name == Utils.API_PUBLISHER_EMAIL:
+            process_to_execute = process_publisher_email
+            lst_status_code = [401, 403]
+        elif response_code_name == Utils.API_REGISTRY_DOWNLOADS:
+            process_to_execute = process_registry_downloads
+            lst_status_code = [401, 403]
+        elif response_code_name == Utils.API_REGISTRY_SERVERS:
+            process_to_execute = process_registry_servers
+            lst_status_code = [401, 403]
+        elif response_code_name == Utils.API_VALIDATE_SERVICE:
+            process_to_execute = process_validate_service
+            lst_status_code = [401, 403, 500]
+
+        if status_code == 200:
+            Utils.push_info(feedback, f"INFO: Status code: {status_code}")
+            json_response = response.json()
+            process_to_execute()
+        elif status_code in lst_status_code:
+            process_error_code()
         else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
+            # The status code is not in the list of status code to process
+            description = http.client.responses[status_code]
+            ResponseCodes._push_response(feedback, response, status_code, description)
+
+#    @staticmethod
+#    def validate_project_file(feedback, response):
+#        """This method manages the response codes for the DDR Publisher API Post /validate
+#        This API validates if a project is compliant when a project is complain it can be published/unpublished"""
+#
+#        status = response.status_code
+#        if status == 200:
+#            json_response = response.json()
+#            results = json.dumps(json_response, indent=4, ensure_ascii=False)
+#            Utils.push_info(feedback, "INFO: ", "200 - Validation is successful")
+#            Utils.push_info(feedback, "INFO: ", results, pad_with_dot=True)
+#        elif status == 401:
+#            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
+#        elif status == 403:
+#            ResponseCodes._push_response(feedback, response, 403, "Access token does not have the required scope.")
+#        elif status == 500:
+#            ResponseCodes._push_response(feedback, response, 500, "Internal error.")
+#        else:
+#            description = http.client.responses[status]
+#            ResponseCodes._push_response(feedback, response, status, description)
 
     @staticmethod
     def create_access_token(feedback, response):
@@ -1166,111 +1235,6 @@ class ResponseCodes(object):
             ResponseCodes._push_response(feedback, response, 400, "Bad request received on server.")
         elif status == 401:
             ResponseCodes._push_response(feedback, response, 401, "Invalid credentials provided.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_csz_theme(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /czs_themes
-        This method extract the themes from the DDR"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "Reading the available Clip Zip Ship Themes."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_themes(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_ddr_departments(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /csz_departments
-           This method extract the departments from the DDR"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "Reading the available DDR departments."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_departments(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_user_email(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_my_email
-           This method extract the email associated with user login"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "Reading the user email."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_email(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_downloads(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_downloads
-           This method extract the downloads associated with user login"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "The list of DDR Registry Downloads."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_downloads(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
-        else:
-            description = http.client.responses[status]
-            ResponseCodes._push_response(feedback, response, status, description)
-
-    @staticmethod
-    def read_servers(feedback, response):
-        """This method manages the response codes for the DDR Publisher API Get /ddr_servers
-           This method extract the downloads associated with user login"""
-
-        status = response.status_code
-
-        if status == 200:
-            Utils.push_info(feedback, f"INFO: Status code: {status}")
-            msg = "The list of DDR Registry Servers."
-            Utils.push_info(feedback, f"INFO: {msg}")
-            json_response = response.json()
-            DdrInfo.add_servers(json_response)
-        elif status == 401:
-            ResponseCodes._push_response(feedback, response, 401, "Access token is missing or invalid.")
-        elif status == 403:
-            ResponseCodes._push_response(feedback, response, 403, "Access does not have the required scope.")
         else:
             description = http.client.responses[status]
             ResponseCodes._push_response(feedback, response, status, description)
@@ -1621,7 +1585,7 @@ class UtilsGui():
 
         parameter = QgsProcessingParameterEnum(
             name='CZS_THEMES',
-            description=self.tr("Select the Clip-Zip-Ship (CSZ) theme"),
+            description=self.tr("Select the Clip-Zip-Ship (CZS) theme"),
             options=[""] + DdrInfo.get_theme_lst("en"),
             usesStaticStrings=True,
             allowMultiple=False,
@@ -2400,11 +2364,11 @@ class DdrLogin(QgsProcessingAlgorithm):
             # Create the access tokens needed for the API call
             Utils.create_access_tokens(username, password, feedback)
 
-            Utils.read_czs_themes(feedback)
-            Utils.read_ddr_departments(feedback)
-            Utils.read_user_email(feedback)
-            Utils.read_downloads(feedback)
-            Utils.read_servers(feedback)
+            Utils.read_api(Utils.API_CZS_THEMES, feedback)
+            Utils.read_api(Utils.API_DDR_DEPARTMENT, feedback)
+            Utils.read_api(Utils.API_PUBLISHER_EMAIL, feedback)
+            Utils.read_api(Utils.API_REGISTRY_DOWNLOADS, feedback)
+            Utils.read_api(Utils.API_REGISTRY_SERVERS, feedback)
 
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
@@ -2436,6 +2400,8 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
         """Return the flags setting the NoThreading very important otherwise there are weird bugs...
         """
 
+#        return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | \
+#                                 QgsProcessingAlgorithm.FlagHideFromToolbox
         return super().flags() | QgsProcessingAlgorithm.FlagNoThreading | QgsProcessingAlgorithm.FlagSupportsBatch | \
                                  QgsProcessingAlgorithm.FlagHideFromToolbox
 
@@ -2505,11 +2471,11 @@ class DdrLoginBatch(QgsProcessingAlgorithm):
             # Create the access tokens needed for the API call
             Utils.create_access_tokens(username, password, feedback)
 
-            Utils.read_czs_themes(feedback)
-            Utils.read_ddr_departments(feedback)
-            Utils.read_user_email(feedback)
-            Utils.read_downloads(feedback)
-            Utils.read_servers(feedback)
+            Utils.read_api(Utils.API_CZS_THEMES, feedback)
+            Utils.read_api(Utils.API_DDR_DEPARTMENT, feedback)
+            Utils.read_api(Utils.API_PUBLISHER_EMAIL, feedback)
+            Utils.read_api(Utils.API_REGISTRY_DOWNLOADS, feedback)
+            Utils.read_api(Utils.API_REGISTRY_SERVERS, feedback)
 
         except UserMessageException as e:
             Utils.push_info(feedback, f"ERROR: Login process")
