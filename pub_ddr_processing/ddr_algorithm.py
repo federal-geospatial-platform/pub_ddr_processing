@@ -53,7 +53,8 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
                        QgsMapLayerStyleManager, QgsReadWriteContext, QgsDataSourceUri, QgsDataProvider,
                        QgsProviderRegistry, QgsProcessingParameterAuthConfig, QgsApplication, QgsAuthMethodConfig,
                        QgsProcessingParameterFile, QgsProcessingParameterDefinition, QgsProcessingParameterBoolean,
-                       QgsProcessingOutputString, QgsProcessingContext, QgsProcessingRegistry)
+                       QgsProcessingOutputString, QgsProcessingContext, QgsProcessingRegistry,
+                       QgsProcessingParameterFileDestination)
 
 
 class KW:
@@ -715,6 +716,78 @@ class Utils:
     API_UPDATE_SERVICE = "/update"
 
     """Contains a list of static methods"""
+
+    @staticmethod
+    def dispatch_algorithm(self, process_type, parameters, context, feedback):
+        """Main routine that control the publication/unpublication/update of services"""
+
+        def _dispatch():
+            """Main routine that control the publication/unpublication/update of services"""
+
+            # Create the control file data structure
+            ctl_file = ControlFile()
+
+            # Extract the parameters
+            UtilsGui.read_parameters(self, ctl_file, parameters, context)
+
+            if ctl_file.bool_ctl_file:
+                # Only write the control file and exit the process
+                ManageControlFile.write_ctl_file(process_type, ctl_file, KW.SAVE_CTL_FILE, feedback)
+                return
+
+            # Init the project files by resetting the layers structures
+            DdrInfo.init_project_file()
+
+            # Create temporary directory
+            ctl_file.control_file_dir = tempfile.mkdtemp(prefix='qgis_')
+            Utils.push_info(feedback, "INFO: Temporary directory created: ", ctl_file.control_file_dir)
+
+            # Manage the project file information
+            Utils.manage_service_web(process_type, ctl_file, feedback)
+
+            # Copy the download package file in temp repository
+            Utils.copy_download_package_file(process_type, ctl_file, feedback)
+
+            # Creation of the JSON control file
+            ManageControlFile.write_ctl_file(process_type, ctl_file, KW.EXECUTE_CTL_FILE, feedback)
+
+            # Creation of the ZIP file
+            Utils.create_zip_file(ctl_file, feedback)
+
+            # Validate the project file
+            if ctl_file.validate:
+                # The action is executed in validate mode
+                Utils.validate_project_file(ctl_file, process_type, feedback)
+            elif process_type == KW.PUBLISH:
+                # Publish the project file
+                DdrPublishService.publish_project_file(ctl_file, feedback)
+            elif process_type == KW.UNPUBLISH:
+                # Unpublish the project file
+                DdrUnpublishService.unpublish_project_file(ctl_file, feedback)
+            elif process_type == "UPDATE":
+                # Update the project file
+                DdrUpdateService.update_project_file(ctl_file, feedback)
+            else:
+                raise UserMessageException(f"Internal error. Unknown Process Type: {process_type}")
+
+            if ctl_file.service_web:  # if web_service is selected
+                # Restoring original .qgs project file
+                Utils.restore_original_project_file(ctl_file, feedback)
+
+            # Deleting the temporary directory and files
+            Utils.delete_dir_file(ctl_file, feedback)
+
+            return
+
+        try:
+            _dispatch()
+        except UserMessageException as e:
+            Utils.push_info(feedback, f"ERROR: {process_type} process")
+            Utils.push_info(feedback, f"ERROR: {str(e)}")
+
+        return {}
+
+        return
 
     @staticmethod
     def get_date_time():
@@ -1393,7 +1466,7 @@ class UtilsGui(object):
 
     @staticmethod
     def add_existing_ctl_file(self, message=""):
-        """Add Select EN and FR project file menu"""
+        """Add Select the name of existing control file"""
 
         parameter = QgsProcessingParameterFile(
             name='EXISTING_CTL_FILE',
@@ -1406,14 +1479,13 @@ class UtilsGui(object):
 
     @staticmethod
     def add_output_ctl_file(self, message=""):
-        """Add Select EN and FR project file menu"""
+        """Add Select the name of the output control file"""
 
-        parameter = QgsProcessingParameterFile(
+        parameter = QgsProcessingParameterFileDestination(
             name='OUTPUT_CTL_FILE',
             description='Select the name of the output control file (.json)',
-            extension='json',
-            optional=True,
-            behavior=QgsProcessingParameterFile.File)
+            fileFilter='*.json',
+            optional=True)
         parameter.setHelp(message)
         parameter.setFlags(parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(parameter)
@@ -1748,66 +1820,6 @@ class UtilsGui(object):
         self.addParameter(parameter)
 
 
-def dispatch_algorithm(self, process_type, parameters, context, feedback):
-    # import web_pdb; web_pdb.set_trace()
-
-    # Create the control file data structure
-    ctl_file = ControlFile()
-
-    # Extract the parameters
-    UtilsGui.read_parameters(self, ctl_file, parameters, context)
-
-    if ctl_file.bool_ctl_file:
-        # Only write the control file and exit the process
-        ManageControlFile.write_ctl_file(process_type, ctl_file, KW.SAVE_CTL_FILE, feedback)
-        return
-
-    # Init the project files by resetting the layers structures
-    DdrInfo.init_project_file()
-
-    # Create temporary directory
-    ctl_file.control_file_dir = tempfile.mkdtemp(prefix='qgis_')
-    Utils.push_info(feedback, "INFO: Temporary directory created: ", ctl_file.control_file_dir)
-
-    # Manage the project file information
-    Utils.manage_service_web(process_type, ctl_file, feedback)
-
-    # Copy the download package file in temp repository
-    Utils.copy_download_package_file(process_type, ctl_file, feedback)
-
-    # Creation of the JSON control file
-    ManageControlFile.write_ctl_file(process_type, ctl_file, KW.EXECUTE_CTL_FILE, feedback)
-
-    # Creation of the ZIP file
-    Utils.create_zip_file(ctl_file, feedback)
-
-    # Validate the project file
-    if ctl_file.validate:
-        # The action is executed in validate mode
-        Utils.validate_project_file(ctl_file, process_type, feedback)
-    elif process_type == KW.PUBLISH:
-        # Publish the project file
-        DdrPublishService.publish_project_file(ctl_file, feedback)
-    elif process_type == KW.UNPUBLISH:
-        # Unpublish the project file
-        DdrUnpublishService.unpublish_project_file(ctl_file, feedback)
-    elif process_type == "UPDATE":
-        # Update the project file
-        DdrUpdateService.update_project_file(ctl_file, feedback)
-    else:
-        raise UserMessageException(f"Internal error. Unknown Process Type: {process_type}")
-
-    if ctl_file.service_web:  # if web_service is selected
-        # Restoring original .qgs project file
-        Utils.restore_original_project_file(ctl_file, feedback)
-
-    # Deleting the temporary directory and files
-    # import web_pdb; web_pdb.set_trace()
-    Utils.delete_dir_file(ctl_file, feedback)
-
-    return
-
-
 class DdrPublishService(QgsProcessingAlgorithm):
     """Main class defining how to publish a service.
     """
@@ -1942,11 +1954,7 @@ class DdrPublishService(QgsProcessingAlgorithm):
         """
 
         # import web_pdb; web_pdb.set_trace()
-        try:
-            dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
-        except UserMessageException as e:
-            Utils.push_info(feedback, f"ERROR: Publish process")
-            Utils.push_info(feedback, f"ERROR: {str(e)}")
+        Utils.dispatch_algorithm(self, "PUBLISH", parameters, context, feedback)
 
         return {}
 
@@ -2076,11 +2084,7 @@ class DdrUpdateService(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        try:
-            dispatch_algorithm(self, "UPDATE", parameters, context, feedback)
-        except UserMessageException as e:
-            Utils.push_info(feedback, f"ERROR: Update process")
-            Utils.push_info(feedback, f"ERROR: {str(e)}")
+        Utils.dispatch_algorithm(self, "UPDATE", parameters, context, feedback)
 
         return {}
 
@@ -2202,12 +2206,7 @@ class DdrUnpublishService(QgsProcessingAlgorithm):
         """Main method that extract parameters and call Simplify algorithm.
         """
 
-        # import web_pdb; web_pdb.set_trace()
-        try:
-            dispatch_algorithm(self, KW.UNPUBLISH, parameters, context, feedback)
-        except UserMessageException as e:
-            Utils.push_info(feedback, f"ERROR: Unpublish process")
-            Utils.push_info(feedback, f"ERROR: {str(e)}")
+        Utils.dispatch_algorithm(self, KW.UNPUBLISH, parameters, context, feedback)
 
         return {}
 
