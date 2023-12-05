@@ -8,7 +8,7 @@
 # /***************************************************************************
 # ddr_algorithm.py
 # ----------------
-# Date                 : January 2021
+# Date                 : January 2023
 # copyright            : (C) 2023 by Natural Resources Canada
 # email                : daniel.pilon@canada.ca
 #
@@ -58,7 +58,7 @@ from qgis.core import (Qgis, QgsProcessing, QgsProcessingAlgorithm, QgsProcessin
 
 
 class KW:
-    """This class defines the key words or constants used in the pub_ddr_processing plugin"""
+    """This class defines the key words (constants) used in the pub_ddr_processing plugin"""
 
     # Keyword for the action
     PUBLISH = "PUBLISH"
@@ -95,12 +95,12 @@ class ControlFile:
     bool_ctl_file: str = None  # Action to perform with an existing control file
     control_file_dir: str = None  # Name of temporary directory
     control_file_name: str = None  # Name of the control file
-    core_subject_term: str = None
+    core_subject_term: str = None  # Name of the core subject term when using a download file
     czs_collection_theme: str = None  # Name of the collection theme
     download_info_id: str = None
     download_package_file: str = None  # Name of download package name
     out_download_package_file: str = None  # Name of download package name
-    email: str = None
+    email: str = None  # Email of the control file
     existing_ctl_file: str = None  # Name of an existing control file
     output_ctl_file: str = None  # Name of the output control file
     in_control_file_name: str = None  # Name of the input control file (JSON)
@@ -108,14 +108,14 @@ class ControlFile:
     keep_files: str = None  # Name of the flag to keep the temporary files and directory
     gpkg_layer_counter: int = 0  # Name of the counter of vector layer in the GPKG file
     gpkg_file_name: str = None  # Name of Geopackage containing the vector layers
-    language: str = None
+    language: str = None  # Language of th project file FR or EN
     metadata_uuid: str = None
     out_qgs_project_file_en: str = None  # Name out the output English project file
-    out_qgs_project_file_fr: str = None  # Name out the output English project file
+    out_qgs_project_file_fr: str = None  # Name out the output French project file
     password: str = None  # Login password
     qgs_project_file_en: str = None  # Name of the input English QGIS project file
     qgs_project_file_fr: str = None  # Name of the input French QGIS project file
-    qgs_server_id: str = None
+    qgs_server_id: str = None  # Bame of the QGIS Server
     service_web: bool = None  # Flag for publishing a web service
     service_download: bool = None  # Flag for publishing a download service
     src_qgs_project_name = None  # Name of the actual project file name
@@ -125,10 +125,12 @@ class ControlFile:
 
 
 class ManageControlFile(object):
-    """This class allows to read, validate  and write a JSON control
+    """This class allows to read, validate and write a JSON control document
     """
 
     def __init__(self):
+        """Constructor of the class
+        """
         self.ctl_file = None
         self.publish_service_web = KW.FALSE
         self.update_service_web = KW.FALSE
@@ -162,7 +164,7 @@ class ManageControlFile(object):
 
     @staticmethod
     def write_ctl_file(process_type, ctl_file, ctl_file_mode, feedback):
-        """This method write a JSON control file."""
+        """This method writes a JSON control file."""
 
         # import web_pdb; web_pdb.set_trace()
         # Adjust some values of the control file
@@ -218,6 +220,7 @@ class ManageControlFile(object):
             KW.SERVICE_PARAMETERS: service_parameters
         }
 
+        # Special cases for PUBLISH nd UPDATE
         if process_type in [KW.PUBLISH, KW.UPDATE]:
             if not ctl_file.service_web:
                 # No web service to publish or update
@@ -226,6 +229,7 @@ class ManageControlFile(object):
                 # No download service to publish or update
                 json_control_file[KW.GENERIC_PARAMETERS][KW.DOWNLOAD_PACKAGE_NAME] = ""
 
+        # Special case for UNPUBLISH
         if process_type in [KW.UNPUBLISH]:
             # Manage web service
             if ctl_file.service_web:
@@ -263,16 +267,19 @@ class ManageControlFile(object):
         """Validate the schema of the control file and raise an exception if there is an error."""
 
         def validate_key(dict_content, key):
+            """Validates if the key is present and raise an exception if the key is not present"""
 
             if key not in dict_content:
                 raise UserMessageException(f"Invalid control file schema: missing entry:'{key}'")
 
             return
 
+        # Validate the number of entry in the document
+        Utils.push_info(feedback, f"INFO: Validating schema of JSON control file")
         if len(self.ctl_file) != 2:
             raise UserMessageException("Invalid structure of the control file")
 
-        Utils.push_info(feedback, f"INFO: Validating schema of JSON control file")
+        # Validates the entry of the main document
         validate_key(self.ctl_file, KW.GENERIC_PARAMETERS)
         validate_key(self.ctl_file, KW.SERVICE_PARAMETERS)
 
@@ -377,7 +384,7 @@ class LoginToken(object):
 
 
 class DdrInfo(object):
-    """This class holds and manages different information extracted from the DDR using the API"""
+    """This class manages different information extracted from the DDR using the API"""
 
     # Class variable used to verify that the DdrInfo class has been set
     __initialization_flag = False
